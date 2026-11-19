@@ -15,15 +15,15 @@ Set a target room temperature, choose Eco or High fan speed and select a hot wat
 
 ## Dashboard preview
 
-The cards below show simulated readings and an example notification.
+The mobile example combines Home Assistant’s thermostat dial with the Truma cards. The green timer shows settings confirmed by the box. All readings are simulated and times are omitted.
 
-![Heating and hot water cards with measured and confirmed settings](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/heating-water.png" alt="Mobile dashboard with thermostat dial, heater and water controls, and a confirmed timer" width="380">
 
 <details>
 <summary>Show the timer form and an example notification</summary>
 
-<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timer form with the start date and time left blank" width="360">
-<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Example notification for an unconfirmed target temperature" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/timer.png" alt="Timer form with the start date and time left blank" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/faults.png" alt="Example notification for an unconfirmed target temperature" width="360">
 
 </details>
 
