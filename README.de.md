@@ -44,7 +44,7 @@ Zur Fehlersuche kannst du in der Weboberfläche ein lokales Verbindungsprotokoll
 
 ## Meine Erfahrungen und Hinweise zum Projekt
 
-Ich nutze die Bridge seit über einem Monat im Alltag in meinem Wohnmobil. In dieser Zeit lief sie bei mir fehlerfrei. Bei mir läuft Home Assistant OS auf einem Raspberry Pi 4 mit einer klassischen iNet-Box (Hardware 1.3.0, Firmware 3.1.5) und einer Combi 6. Meine Box hat einen zeitgesteuerten Warmwasserbefehl aus Home Assistant bestätigt. Bei der Warnung W17H habe ich geprüft, dass Home Assistant dieselbe Meldung anzeigt wie mein CP plus. Diese Erfahrungen beziehen sich auf meine Anlage. [Messwerte](PROTOCOL.md) · [Timertests](TIMER_PROTOCOL.md) · [Tests mit Fehlermeldungen](FAULTS.md)
+Ich nutze die Bridge seit über einem Monat im Alltag in meinem Wohnmobil. In dieser Zeit lief sie bei mir fehlerfrei. Bei mir läuft Home Assistant OS auf einem Raspberry Pi 4 mit einer klassischen iNet-Box (Hardware 1.3.0, Firmware 3.1.5) und einer Combi 6.
 
 Für lokale Tests installierst du die Abhängigkeiten aus `truma_inet_bridge/requirements.txt` und für die Simulation der Zeitpläne zusätzlich Jinja2. Starte die Tests mit `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
 

@@ -40,7 +40,7 @@ If pairing still fails, consult the [optional Bluetooth compatibility app](truma
 
 ## Test scope and project information
 
-I’ve been using the bridge in my motorhome for over a month. It has run without any issues in everyday use. I use a Raspberry Pi 4 running Home Assistant OS, a classic iNet Box (hardware 1.3.0, firmware 3.1.5) and a Combi 6. My box confirmed a scheduled hot-water command from HA, and I checked that HA displayed the same W17H warning as my CP plus. These results apply to my setup. See [measurement notes](PROTOCOL.md), [timer tests](TIMER_PROTOCOL.md) and [fault tests](FAULTS.md).
+I’ve been using the bridge in my motorhome for over a month. It has run without any issues in everyday use. I use a Raspberry Pi 4 running Home Assistant OS, a classic iNet Box (hardware 1.3.0, firmware 3.1.5) and a Combi 6.
 
 For local tests, install the dependencies from `truma_inet_bridge/requirements.txt` and Jinja2 for the scheduler simulations. Run `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
 
