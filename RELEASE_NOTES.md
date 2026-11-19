@@ -5,6 +5,8 @@
 - Read appliance warnings and faults in HA and forward them to a configured phone. **As in the Truma iNet System app, Home Assistant cannot remotely reset heater faults through the classic iNet Box.** Mark as seen acknowledges the HA message. The optional heater restart did not clear W17H in testing.
 - Separate queue and execution time limits improve command confirmation on slower Bluetooth connections.
 
+The owner reports more than a month of fault-free day-to-day operation of the bridge in their motorhome.
+
 Install the updated dashboard modules and the optional HA scheduler helpers, script and automation as described in the README. Existing private settings belong in your local installation.
 
 Experimental source pre-release for the classic iNet Box. Test on site and follow the manufacturer's instructions. Use at your own risk. Developed with OpenAI Codex support.

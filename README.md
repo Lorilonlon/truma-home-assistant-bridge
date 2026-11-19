@@ -38,7 +38,7 @@ If pairing still fails, consult the [optional Bluetooth compatibility app](truma
 
 ## Test scope and project information
 
-Test setup: Raspberry Pi 4 running Home Assistant OS, classic iNet Box hardware 1.3.0 / firmware 3.1.5, and a Combi 6. The operator reported several weeks of stable use on this installation. A scheduled HA hot-water command was confirmed by the box. Remote fault reporting was compared with W17H on the CP plus. Results are specific to this equipment. See [measurement notes](PROTOCOL.md), [timer tests](TIMER_PROTOCOL.md) and [fault tests](FAULTS.md).
+Test setup: Raspberry Pi 4 running Home Assistant OS, classic iNet Box hardware 1.3.0 / firmware 3.1.5, and a Combi 6. The owner reports more than a month of fault-free day-to-day operation of the bridge in their motorhome. A scheduled HA hot-water command was confirmed by the box. Remote fault reporting was compared with W17H on the CP plus. Results are specific to this equipment. See [measurement notes](PROTOCOL.md), [timer tests](TIMER_PROTOCOL.md) and [fault tests](FAULTS.md).
 
 For local tests, install the dependencies from `truma_inet_bridge/requirements.txt` and Jinja2 for the scheduler simulations. Run `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
 
