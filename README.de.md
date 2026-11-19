@@ -15,6 +15,20 @@ Du kannst die gewünschte Raumtemperatur einstellen, die Lüfterstufe Eco oder H
 
 Die Versorgungsspannung steht als eigener Sensor zur Verfügung. Sie wird an der iNet-Box gemessen und kann von der Anzeige deines Batteriemonitors abweichen. Fehlende oder unplausible Messwerte erscheinen als „Unbekannt“. Die Rückmeldung der Box bestätigt die Einstellung. Ob der Brenner gerade läuft, lässt sich daraus nicht ablesen.
 
+## Dashboard-Vorschau
+
+Die Karten zeigen frei gewählte Messwerte und eine Beispielmeldung.
+
+![Heizung und Warmwasser mit Messwerten und bestätigten Einstellungen](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+
+<details>
+<summary>Timerformular und Beispielmeldung ansehen</summary>
+
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timerformular mit leerem Feld für Datum und Startzeit" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Beispielmeldung für eine unbestätigte Zieltemperatur" width="360">
+
+</details>
+
 ## Timer
 
 - **Zeitpläne in Home Assistant.** Du kannst bis zu acht einmalige oder tägliche Timer vormerken. Wähle Datum, Uhrzeit, Raumtemperatur, Lüfterstufe und Warmwasser und speichere das Formular mit einem Klick. Vorgemerkte Timer lassen sich bearbeiten. Wählst du eine Endzeit, stellt Home Assistant am Ende die Einstellungen wieder her, die unmittelbar vor dem Start galten. Ohne Endzeit bleiben die neuen Einstellungen bestehen.

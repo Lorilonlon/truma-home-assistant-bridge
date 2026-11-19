@@ -13,6 +13,20 @@ Control space heating and hot water from Home Assistant through the classic **Tr
 
 Set a target room temperature, choose Eco or High fan speed and select a hot water setting (Off, Low, High or Boost). Changing the target while space heating is off stores it for the next explicit start. The dashboard shows the measured room and water temperatures, confirmed settings and connection status. Supply voltage is available as a separate sensor. It measures voltage at the iNet Box and can differ from a battery monitor. Missing or implausible values appear as unknown. Readback confirms control settings, not burner operation.
 
+## Dashboard preview
+
+The cards below show simulated readings and an example notification.
+
+![Heating and hot water cards with measured and confirmed settings](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+
+<details>
+<summary>Show the timer form and an example notification</summary>
+
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timer form with the start date and time left blank" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Example notification for an unconfirmed target temperature" width="360">
+
+</details>
+
 ## Timers
 
 - **Home Assistant schedules.** Queue up to eight one-off or daily timers. Pick the date, time, temperature, fan and hot water settings, then save the whole form. You can edit a pending timer. Adding an end time tells HA to restore the settings it read immediately before the start. With no end time, the new settings stay in effect.
