@@ -1,6 +1,6 @@
 # Truma iNet Bridge for Home Assistant
 
-[Deutsch](README.de.md)
+[Deutsche Anleitung: Installation und Bedienung](README.de.md)
 
 Control space heating and hot water from Home Assistant through the classic **Truma iNet Box**. The bridge runs locally, talks to the box over Bluetooth and exposes controls and sensors through MQTT. I tested the bridge with my Truma Combi 6. The iNet X protocol is not supported.
 
