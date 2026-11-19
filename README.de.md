@@ -46,8 +46,4 @@ Zur Fehlersuche kannst du in der Weboberfläche ein lokales Verbindungsprotokoll
 
 Ich nutze die Bridge seit über einem Monat im Alltag in meinem Wohnmobil. In dieser Zeit lief sie bei mir fehlerfrei. Bei mir läuft Home Assistant OS auf einem Raspberry Pi 4 mit einer klassischen iNet-Box (Hardware 1.3.0, Firmware 3.1.5) und einer Combi 6.
 
-Für lokale Tests installierst du die Abhängigkeiten aus `truma_inet_bridge/requirements.txt` und für die Simulation der Zeitpläne zusätzlich Jinja2. Starte die Tests mit `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
-
-Sende MQTT-Steuerbefehle ohne Retain-Flag und beschränke den Zugriff auf den Broker. Bei MQTT 3 ist ein gespeicherter Befehl, den der Broker an einen bereits verbundenen Empfänger weiterleitet, nicht immer als solcher erkennbar. Die Bridge wiederholt nach einer erneuten Verbindung keine früheren Befehle.
-
 Ich habe dieses unabhängige Community-Projekt mit [Unterstützung von OpenAI Codex](AI_DISCLOSURE.md) entwickelt. Es besteht keine Verbindung zu Truma oder zum Home-Assistant-Projekt. [MIT-Lizenz](LICENSE) · [Hinweise zu Drittanbietern](THIRD_PARTY.md) · [Sicherheitsprobleme vertraulich melden](SECURITY.md)

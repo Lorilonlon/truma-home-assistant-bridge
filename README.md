@@ -42,8 +42,4 @@ If pairing still fails, consult the [optional Bluetooth compatibility app](truma
 
 I’ve been using the bridge in my motorhome for over a month. It has run without any issues in everyday use. I use a Raspberry Pi 4 running Home Assistant OS, a classic iNet Box (hardware 1.3.0, firmware 3.1.5) and a Combi 6.
 
-For local tests, install the dependencies from `truma_inet_bridge/requirements.txt` and Jinja2 for the scheduler simulations. Run `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
-
-Use non-retained MQTT commands and restrict access to the broker. MQTT 3 does not always identify a retained command forwarded to a live subscriber. The bridge does not replay commands after reconnection.
-
 I developed this independent community project with [support from OpenAI Codex](AI_DISCLOSURE.md). The project is unaffiliated with Truma or Home Assistant. [MIT licence](LICENSE) · [Third-party notices](THIRD_PARTY.md) · [Private security reporting](SECURITY.md).
