@@ -1,3 +1,5 @@
+<img align="right" src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/9d673df6d196af87479304187b3392f84646790e/images/wohnmobil-heizung.png" alt="Wohnmobil mit zwei Wärmewellen" width="80" height="80">
+
 # Truma iNet Bridge für Home Assistant
 
 [English](README.md)
@@ -12,6 +14,20 @@ Mit der Bridge steuerst du Raumheizung und Warmwasser über deine klassische **T
 Du kannst die gewünschte Raumtemperatur einstellen, die Lüfterstufe Eco oder High wählen und das Warmwasser auf Aus, Niedrig, Hoch oder Boost stellen. Änderst du die Zieltemperatur bei ausgeschalteter Raumheizung, speichert die Bridge sie für das nächste Einschalten. Das Dashboard zeigt die gemessene Raum- und Wassertemperatur, die von der Box bestätigten Einstellungen und den Verbindungsstatus.
 
 Die Versorgungsspannung steht als eigener Sensor zur Verfügung. Sie wird an der iNet-Box gemessen und kann von der Anzeige deines Batteriemonitors abweichen. Fehlende oder unplausible Messwerte erscheinen als „Unbekannt“. Die Rückmeldung der Box bestätigt die Einstellung. Ob der Brenner gerade läuft, lässt sich daraus nicht ablesen.
+
+## Dashboard-Vorschau
+
+Die Karten zeigen frei gewählte Messwerte und eine Beispielmeldung.
+
+![Heizung und Warmwasser mit Messwerten und bestätigten Einstellungen](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+
+<details>
+<summary>Timerformular und Beispielmeldung ansehen</summary>
+
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timerformular mit leerem Feld für Datum und Startzeit" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Beispielmeldung für eine unbestätigte Zieltemperatur" width="360">
+
+</details>
 
 ## Timer
 

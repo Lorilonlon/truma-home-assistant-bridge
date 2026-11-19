@@ -1,3 +1,5 @@
+<img align="right" src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/9d673df6d196af87479304187b3392f84646790e/images/wohnmobil-heizung.png" alt="Motorhome with two heat waves" width="80" height="80">
+
 # Truma iNet Bridge for Home Assistant
 
 [Deutsche Anleitung: Installation und Bedienung](README.de.md)
@@ -10,6 +12,20 @@ Control space heating and hot water from Home Assistant through the classic **Tr
 ## Heating, water and dashboard
 
 Set a target room temperature, choose Eco or High fan speed and select a hot water setting (Off, Low, High or Boost). Changing the target while space heating is off stores it for the next explicit start. The dashboard shows the measured room and water temperatures, confirmed settings and connection status. Supply voltage is available as a separate sensor. It measures voltage at the iNet Box and can differ from a battery monitor. Missing or implausible values appear as unknown. Readback confirms control settings, not burner operation.
+
+## Dashboard preview
+
+The cards below show simulated readings and an example notification.
+
+![Heating and hot water cards with measured and confirmed settings](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+
+<details>
+<summary>Show the timer form and an example notification</summary>
+
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timer form with the start date and time left blank" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Example notification for an unconfirmed target temperature" width="360">
+
+</details>
 
 ## Timers
 
