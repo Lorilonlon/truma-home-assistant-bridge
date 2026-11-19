@@ -17,15 +17,15 @@ Die Versorgungsspannung steht als eigener Sensor zur Verfügung. Sie wird an der
 
 ## Dashboard-Vorschau
 
-Die Karten zeigen frei gewählte Messwerte und eine Beispielmeldung.
+Die Mobilansicht kombiniert das Thermostat-Drehrad von Home Assistant mit den Truma-Karten. Der grüne Timer zeigt von der Box bestätigte Einstellungen. Alle Messwerte sind Beispieldaten, Zeitangaben sind ausgeblendet.
 
-![Heizung und Warmwasser mit Messwerten und bestätigten Einstellungen](https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/heating-water.png)
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/heating-water.png" alt="Mobile Ansicht mit Drehrad, Heizungs- und Warmwassersteuerung sowie bestätigtem Timer" width="380">
 
 <details>
 <summary>Timerformular und Beispielmeldung ansehen</summary>
 
-<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/timer.png" alt="Timerformular mit leerem Feld für Datum und Startzeit" width="360">
-<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/6b0a72f0b60cbc908bc16803fd4109e00646baa6/images/faults.png" alt="Beispielmeldung für eine unbestätigte Zieltemperatur" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/timer.png" alt="Timerformular mit leerem Feld für Datum und Startzeit" width="360">
+<img src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/c3bf9088972b62625f0b067bf60762f61a051561/images/faults.png" alt="Beispielmeldung für eine unbestätigte Zieltemperatur" width="360">
 
 </details>
 

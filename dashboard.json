@@ -28,6 +28,12 @@
               "icon": "mdi:radiator"
             },
             {
+              "type": "thermostat",
+              "entity": "climate.truma_inet_heizung",
+              "name": "Raumheizung",
+              "show_current_as_primary": false
+            },
+            {
               "type": "custom:camper-inet-card",
               "kind": "climate",
               "entity": "climate.truma_inet_heizung",
@@ -78,6 +84,11 @@
         {
           "type": "grid",
           "cards": [
+            {
+              "type": "heading",
+              "heading": "Zeitsteuerung",
+              "icon": "mdi:clock-outline"
+            },
             {
               "type": "custom:camper-inet-timer-card",
               "grid_options": {
