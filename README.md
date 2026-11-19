@@ -1,3 +1,5 @@
+<img align="right" src="https://raw.githubusercontent.com/Lorilonlon/truma-inet-dashboard/9d673df6d196af87479304187b3392f84646790e/images/wohnmobil-heizung.png" alt="Motorhome with two heat waves" width="80" height="80">
+
 # Truma iNet Bridge for Home Assistant
 
 [Deutsche Anleitung: Installation und Bedienung](README.de.md)
