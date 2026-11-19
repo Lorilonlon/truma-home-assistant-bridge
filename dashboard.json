@@ -31,7 +31,7 @@
               "type": "custom:camper-inet-card",
               "kind": "climate",
               "entity": "climate.truma_inet_heizung",
-              "temperature_entity": "sensor.truma_inet_raumtemperatur",
+              "temperature_entity": "sensor.truma_inet_current_temperature",
               "name": "Raumheizung",
               "grid_options": {
                 "columns": 12,
@@ -52,7 +52,7 @@
               "type": "custom:camper-inet-card",
               "kind": "water",
               "entity": "select.truma_inet_warmwasser",
-              "temperature_entity": "sensor.truma_inet_wassertemperatur",
+              "temperature_entity": "sensor.truma_inet_water_temperature",
               "name": "Warmwasser einstellen",
               "grid_options": {
                 "columns": 12,
