@@ -1,3 +1,7 @@
+## Version 0.1.9-beta.6 (2026-11-19)
+
+112 Python tests passed locally, including the HA schedule simulations. The browser test passed using a simulated HA instance. On a Combi 6 with the classic iNet Box, the operator compared the edited end time and settings with the CP plus. See [device timer validation](TIMER_PROTOCOL.md) for the settings, restoration and remaining physical tests. The reference installation also reported W17H at both the panel and HA. Marking the message as seen did not clear the heater warning.
+
 # Prüfung des Veröffentlichungsstands
 
 Stand: 03.10.2026. Lokale Prüfung des bereinigten Quellpakets, keine unabhängige Auditierung.

@@ -7,6 +7,8 @@ from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next.constants import PropertyAccess
 from .protocol import ADVERTISED_UUID, PHONE_SERVICE, PHONE_CHARACTERISTIC, HEATER_SERVICE, CHARACTERISTICS, MEASUREMENT_SERVICE, MEASUREMENTS, decode_measurement
+from .timer import TIMER_CHARACTERISTICS, TIMER_WRITABLE
+from .faults import FAULT_CHARACTERISTIC, FAULT_SERVICES, decode_fault
 
 LOG = logging.getLogger(__name__)
 ROOT = "/com/truma/bridge"
@@ -306,6 +308,22 @@ class BlueZ:
         if set(paths) != set(CHARACTERISTICS) or any("read" not in v for v in flags.values()):
             raise RuntimeError("Temperatur, Gebläse und Warmwasser sind noch nicht vollständig lesbar.")
         self.paths, self.flags = paths, flags
+        for source, service_uuid in FAULT_SERVICES.items():
+            matches = [c for c in inventory if c["uuid"].lower() == FAULT_CHARACTERISTIC and
+                       objects.get(c["service"], {}).get("org.bluez.GattService1", {}).get("UUID", "").lower() == service_uuid
+                       and "read" in c["flags"]]
+            if len(matches) == 1:
+                self.paths["fault_" + source] = matches[0]["path"]
+        # Timer support is optional and must never prevent ordinary heating.
+        timer_matches = {}
+        for kind, uuid in TIMER_CHARACTERISTICS.items():
+            matches = [c for c in inventory if c["uuid"].lower() == uuid and
+                       c["service"] in services and "read" in c["flags"]]
+            if len(matches) == 1:
+                timer_matches[kind] = matches[0]
+        if set(timer_matches) == set(TIMER_CHARACTERISTICS):
+            for kind, char in timer_matches.items():
+                self.paths[kind], self.flags[kind] = char["path"], char["flags"]
         for kind, uuid in MEASUREMENTS.items():
             matches = [c for c in inventory if c["uuid"].lower() == uuid and
                        objects.get(c["service"], {}).get("org.bluez.GattService1", {}).get("UUID", "").lower() == MEASUREMENT_SERVICE
@@ -335,11 +353,22 @@ class BlueZ:
             await self.set_property(self.device_path, DEVICE, "Trusted", "b", True)
 
     async def write(self, kind, payload):
-        if kind not in CHARACTERISTICS:
+        if kind not in CHARACTERISTICS and kind not in TIMER_WRITABLE:
             raise ValueError("Messwerte sind ausschließlich lesbar")
         if "write" not in self.flags.get(kind, []):
             raise RuntimeError("Schreiben mit Bestätigung wird von diesem Attribut nicht angeboten.")
         await self.call(self.paths[kind], GATT, "WriteValue", "aya{sv}", [payload, {"type": Variant("s", "request")}])
+
+    @property
+    def timer_writable(self):
+        return (set(TIMER_CHARACTERISTICS).issubset(self.paths) and
+                all("write" in self.flags.get(k, []) for k in TIMER_WRITABLE))
+
+    async def read_timer(self):
+        if not set(TIMER_CHARACTERISTICS).issubset(self.paths):
+            return None
+        return {kind: await asyncio.wait_for(self.read(kind), 2)
+                for kind in TIMER_CHARACTERISTICS}
 
     async def measurements(self):
         result = dict.fromkeys(MEASUREMENTS)
@@ -350,6 +379,20 @@ class BlueZ:
                 result[kind] = decode_measurement(kind, await asyncio.wait_for(self.read(kind), 2))
             except (DBusError, OSError, asyncio.TimeoutError) as exc:
                 LOG.warning("Measurement %s unavailable: %s", kind, exc)
+        return result
+
+    async def read_faults(self):
+        result = {}
+        for source in FAULT_SERVICES:
+            kind = "fault_" + source
+            if kind not in self.paths:
+                result[source] = {"status": "unsupported", "fault": None}
+                continue
+            try:
+                raw = await asyncio.wait_for(self.read(kind), 2)
+                result[source] = {"status": "ok", "fault": decode_fault(raw)}
+            except (DBusError, OSError, asyncio.TimeoutError, ValueError):
+                result[source] = {"status": "unavailable", "fault": None}
         return result
 
     async def disconnect(self):

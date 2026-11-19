@@ -1,6 +1,6 @@
 {
   "name": "Camper Heater Bridge",
-  "version": "0.1.8",
+  "version": "0.1.9-beta.6",
   "slug": "truma_inet_bridge",
   "description": "Lokale Bluetooth-Brücke für die klassische Truma iNet-Box, mit Kopplung und MQTT.",
   "arch": [
@@ -19,6 +19,7 @@
     "adapter": "hci0",
     "box_address": "",
     "allow_control": false,
+    "allow_timer_control": false,
     "poll_seconds": 15,
     "mqtt_host": "",
     "mqtt_port": 8883,
@@ -32,6 +33,7 @@
     "adapter": "match(^hci[0-9]+$)",
     "box_address": "match(^$|^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$)",
     "allow_control": "bool",
+    "allow_timer_control": "bool?",
     "poll_seconds": "int(5,120)",
     "mqtt_host": "str",
     "mqtt_port": "port",

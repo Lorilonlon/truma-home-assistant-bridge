@@ -1,0 +1,1248 @@
+{
+  "alias": "Heizung neu starten",
+  "description": "Einmaliger manueller Betriebswechsel nach behobener Ursache. Kein elektrischer Neustart und kein nachgewiesener Fehlerquittierbefehl. Bricht bei unbestätigten Schritten ab; kein automatischer Wiederanlauf nach HA-Neustart. Werte werden absichtlich einzeln und mit Rückmeldung restauriert, nicht gleichzeitig über eine Szene.",
+  "icon": "mdi:restart",
+  "mode": "single",
+  "max_exceeded": "warning",
+  "trace": {
+    "stored_traces": 10
+  },
+  "fields": {
+    "cause_resolved": {
+      "name": "Ursache behoben",
+      "description": "Die Ursache wurde behoben; Heizung und Warmwasser dürfen wieder anlaufen.",
+      "required": true,
+      "default": false,
+      "selector": {
+        "boolean": {}
+      }
+    }
+  },
+  "variables": {
+    "notify_service": ""
+  },
+  "sequence": [
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ cause_resolved | default(false) == true }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Nicht gestartet: Ursache zuerst beheben und den Neustart ausdrücklich bestätigen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Nicht gestartet: Ursache zuerst beheben und den Neustart ausdrücklich bestätigen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Nicht gestartet: Ursache zuerst beheben und den Neustart ausdrücklich bestätigen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "binary_sensor.truma_inet_verbindung",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "sensor.truma_inet_timer",
+                  "state": "Aus"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "climate.truma_inet_heizung",
+                  "state": [
+                    "off",
+                    "heat"
+                  ]
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "select.truma_inet_warmwasser",
+                  "state": [
+                    "Aus",
+                    "Niedrig",
+                    "Hoch",
+                    "Boost"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Nicht gestartet: Verbindung, Betriebswerte oder Gerätetimer sind nicht bereit.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Nicht gestartet: Verbindung, Betriebswerte oder Gerätetimer sind nicht bereit.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Nicht gestartet: Verbindung, Betriebswerte oder Gerätetimer sind nicht bereit.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "variables": {
+        "saved_mode": "{{ states('climate.truma_inet_heizung') }}",
+        "saved_target": "{{ state_attr('climate.truma_inet_heizung', 'temperature') }}",
+        "saved_fan": "{{ state_attr('climate.truma_inet_heizung', 'fan_mode') }}",
+        "saved_water": "{{ states('select.truma_inet_warmwasser') }}"
+      }
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ saved_mode == 'off' or (saved_target is number and 5 <= saved_target <= 30 and saved_fan in ['Eco','High']) }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Nicht gestartet: Heizwerte können nicht zuverlässig wiederhergestellt werden.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Nicht gestartet: Heizwerte können nicht zuverlässig wiederhergestellt werden.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Nicht gestartet: Heizwerte können nicht zuverlässig wiederhergestellt werden.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "state",
+          "entity_id": "climate.truma_inet_heizung",
+          "state": "off"
+        },
+        {
+          "condition": "state",
+          "entity_id": "select.truma_inet_warmwasser",
+          "state": "Aus"
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Raumheizung und Warmwasser sind bereits aus. Kein Neustart ausgeführt.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Raumheizung und Warmwasser sind bereits aus. Kein Neustart ausgeführt.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Bereits ausgeschaltet"
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "binary_sensor.truma_inet_verbindung",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "sensor.truma_inet_timer",
+                  "state": "Aus"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "action": "select.select_option",
+      "target": {
+        "entity_id": "select.truma_inet_warmwasser"
+      },
+      "data": {
+        "option": "Aus"
+      },
+      "continue_on_error": true
+    },
+    {
+      "wait_template": "{{ is_state('select.truma_inet_warmwasser','Aus') and is_state('binary_sensor.truma_inet_verbindung','on') }}",
+      "timeout": {
+        "seconds": 20
+      },
+      "continue_on_timeout": true
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ wait.completed }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Warmwasser aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Warmwasser aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Warmwasser aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "binary_sensor.truma_inet_verbindung",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "sensor.truma_inet_timer",
+                  "state": "Aus"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "action": "climate.set_hvac_mode",
+      "target": {
+        "entity_id": "climate.truma_inet_heizung"
+      },
+      "data": {
+        "hvac_mode": "off"
+      },
+      "continue_on_error": true
+    },
+    {
+      "wait_template": "{{ is_state('climate.truma_inet_heizung','off') and is_state('binary_sensor.truma_inet_verbindung','on') }}",
+      "timeout": {
+        "seconds": 20
+      },
+      "continue_on_timeout": true
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ wait.completed }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Raumheizung aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Raumheizung aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Raumheizung aus wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "delay": {
+        "seconds": 180
+      },
+      "alias": "Drei Minuten Ausschaltpause; kein Beleg für vollständigen Gerätenachlauf"
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "binary_sensor.truma_inet_verbindung",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "sensor.truma_inet_timer",
+                  "state": "Aus"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "climate.truma_inet_heizung",
+                  "state": "off"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "select.truma_inet_warmwasser",
+                  "state": "Aus"
+                },
+                {
+                  "condition": "template",
+                  "value_template": "{{ saved_mode == 'off' or state_attr('climate.truma_inet_heizung','temperature') == saved_target }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Neustart abgebrochen: Einstellungen oder Verbindung haben sich geändert. Es wird nichts automatisch wieder eingeschaltet.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Einstellungen oder Verbindung haben sich geändert. Es wird nichts automatisch wieder eingeschaltet.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Neustart abgebrochen: Einstellungen oder Verbindung haben sich geändert. Es wird nichts automatisch wieder eingeschaltet.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ saved_mode == 'heat' }}"
+        }
+      ],
+      "then": [
+        {
+          "if": [
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "binary_sensor.truma_inet_verbindung",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "sensor.truma_inet_timer",
+                      "state": "Aus"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "then": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                "notification_id": "truma_heater_restart"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ notify_service | default('') != '' }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "{{ notify_service }}",
+                  "continue_on_error": true,
+                  "data": {
+                    "title": "Truma · Heizung neu starten",
+                    "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                    "data": {
+                      "tag": "truma_heater_restart",
+                      "channel": "Truma Meldungen",
+                      "clickAction": "/wohnmobil-klima/klima",
+                      "url": "/wohnmobil-klima/klima"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "stop": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+              "error": true
+            }
+          ]
+        },
+        {
+          "action": "climate.set_hvac_mode",
+          "target": {
+            "entity_id": "climate.truma_inet_heizung"
+          },
+          "data": {
+            "hvac_mode": "heat"
+          },
+          "continue_on_error": true
+        },
+        {
+          "wait_template": "{{ is_state('climate.truma_inet_heizung','heat') and state_attr('climate.truma_inet_heizung','temperature') == saved_target and is_state('binary_sensor.truma_inet_verbindung','on') }}",
+          "timeout": {
+            "seconds": 20
+          },
+          "continue_on_timeout": true
+        },
+        {
+          "if": [
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ wait.completed }}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "then": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Raumheizung wieder ein wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                "notification_id": "truma_heater_restart"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ notify_service | default('') != '' }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "{{ notify_service }}",
+                  "continue_on_error": true,
+                  "data": {
+                    "title": "Truma · Heizung neu starten",
+                    "message": "Raumheizung wieder ein wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                    "data": {
+                      "tag": "truma_heater_restart",
+                      "channel": "Truma Meldungen",
+                      "clickAction": "/wohnmobil-klima/klima",
+                      "url": "/wohnmobil-klima/klima"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "stop": "Raumheizung wieder ein wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+              "error": true
+            }
+          ]
+        },
+        {
+          "if": [
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "binary_sensor.truma_inet_verbindung",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "sensor.truma_inet_timer",
+                      "state": "Aus"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "then": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                "notification_id": "truma_heater_restart"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ notify_service | default('') != '' }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "{{ notify_service }}",
+                  "continue_on_error": true,
+                  "data": {
+                    "title": "Truma · Heizung neu starten",
+                    "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                    "data": {
+                      "tag": "truma_heater_restart",
+                      "channel": "Truma Meldungen",
+                      "clickAction": "/wohnmobil-klima/klima",
+                      "url": "/wohnmobil-klima/klima"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "stop": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+              "error": true
+            }
+          ]
+        },
+        {
+          "action": "climate.set_fan_mode",
+          "target": {
+            "entity_id": "climate.truma_inet_heizung"
+          },
+          "data": {
+            "fan_mode": "{{ saved_fan }}"
+          },
+          "continue_on_error": true
+        },
+        {
+          "wait_template": "{{ state_attr('climate.truma_inet_heizung','fan_mode') == saved_fan and is_state('binary_sensor.truma_inet_verbindung','on') }}",
+          "timeout": {
+            "seconds": 20
+          },
+          "continue_on_timeout": true
+        },
+        {
+          "if": [
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "and",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ wait.completed }}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "then": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Lüfterstufe wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                "notification_id": "truma_heater_restart"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ notify_service | default('') != '' }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "{{ notify_service }}",
+                  "continue_on_error": true,
+                  "data": {
+                    "title": "Truma · Heizung neu starten",
+                    "message": "Lüfterstufe wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                    "data": {
+                      "tag": "truma_heater_restart",
+                      "channel": "Truma Meldungen",
+                      "clickAction": "/wohnmobil-klima/klima",
+                      "url": "/wohnmobil-klima/klima"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "stop": "Lüfterstufe wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+              "error": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "binary_sensor.truma_inet_verbindung",
+                  "state": "on"
+                },
+                {
+                  "condition": "state",
+                  "entity_id": "sensor.truma_inet_timer",
+                  "state": "Aus"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Neustart abgebrochen: Verbindung fehlt oder der Gerätetimer ist nicht aus. Einstellungen bitte prüfen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "action": "select.select_option",
+      "target": {
+        "entity_id": "select.truma_inet_warmwasser"
+      },
+      "data": {
+        "option": "{{ saved_water }}"
+      },
+      "continue_on_error": true
+    },
+    {
+      "wait_template": "{{ is_state('select.truma_inet_warmwasser',saved_water) and is_state('binary_sensor.truma_inet_verbindung','on') }}",
+      "timeout": {
+        "seconds": 20
+      },
+      "continue_on_timeout": true
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ wait.completed }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Warmwasser wiederherstellen wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Warmwasser wiederherstellen wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Warmwasser wiederherstellen wurde nicht bestätigt. Neustart abgebrochen; Einstellungen können teilweise verändert sein. Kein weiterer Versuch.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "variables": {
+        "verify_after": "{{ now().isoformat() }}"
+      }
+    },
+    {
+      "wait_template": "{{ is_state('binary_sensor.truma_inet_verbindung','on') and state_attr('sensor.truma_inet_meldungen','fresh') == true and as_timestamp(state_attr('sensor.truma_inet_meldungen','checked'),0) > as_timestamp(verify_after) }}",
+      "timeout": {
+        "seconds": 30
+      },
+      "continue_on_timeout": true
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ wait.completed }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Betriebswerte wiederhergestellt, aber der Fehlerstatus konnte nicht frisch geprüft werden. Bitte am Bedienpanel prüfen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Betriebswerte wiederhergestellt, aber der Fehlerstatus konnte nicht frisch geprüft werden. Bitte am Bedienpanel prüfen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Betriebswerte wiederhergestellt, aber der Fehlerstatus konnte nicht frisch geprüft werden. Bitte am Bedienpanel prüfen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "and",
+              "conditions": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ is_state('climate.truma_inet_heizung',saved_mode) and (saved_mode == 'off' or (state_attr('climate.truma_inet_heizung','temperature') == saved_target and state_attr('climate.truma_inet_heizung','fan_mode') == saved_fan)) and is_state('select.truma_inet_warmwasser',saved_water) }}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Neustart nicht bestätigt: Betriebswerte stimmen nicht mit dem vorherigen Stand überein. Bitte prüfen.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Neustart nicht bestätigt: Betriebswerte stimmen nicht mit dem vorherigen Stand überein. Bitte prüfen.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Neustart nicht bestätigt: Betriebswerte stimmen nicht mit dem vorherigen Stand überein. Bitte prüfen.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ (state_attr('sensor.truma_inet_meldungen','active') or []) | selectattr('source','equalto','heater') | list | length > 0 }}"
+        }
+      ],
+      "then": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Aus- und Einschalten bestätigt. Die Heizung meldet weiterhin eine Warnung oder Störung. Bitte am Bedienpanel prüfen; kein weiterer Neustart.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Aus- und Einschalten bestätigt. Die Heizung meldet weiterhin eine Warnung oder Störung. Bitte am Bedienpanel prüfen; kein weiterer Neustart.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "stop": "Aus- und Einschalten bestätigt. Die Heizung meldet weiterhin eine Warnung oder Störung. Bitte am Bedienpanel prüfen; kein weiterer Neustart.",
+          "error": true
+        }
+      ],
+      "else": [
+        {
+          "action": "persistent_notification.create",
+          "data": {
+            "title": "Truma · Heizung neu starten",
+            "message": "Aus- und Einschalten bestätigt; vorherige Einstellungen wiederhergestellt. Die Heizung meldet aktuell keine Warnung oder Störung. Das ist keine Garantie für eine Fehlerbehebung.",
+            "notification_id": "truma_heater_restart"
+          }
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ notify_service | default('') != '' }}"
+            }
+          ],
+          "then": [
+            {
+              "action": "{{ notify_service }}",
+              "continue_on_error": true,
+              "data": {
+                "title": "Truma · Heizung neu starten",
+                "message": "Aus- und Einschalten bestätigt; vorherige Einstellungen wiederhergestellt. Die Heizung meldet aktuell keine Warnung oder Störung. Das ist keine Garantie für eine Fehlerbehebung.",
+                "data": {
+                  "tag": "truma_heater_restart",
+                  "channel": "Truma Meldungen",
+                  "clickAction": "/wohnmobil-klima/klima",
+                  "url": "/wohnmobil-klima/klima"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

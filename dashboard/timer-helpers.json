@@ -1,0 +1,202 @@
+[
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 2",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 2",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 2",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 3",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 3",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 3",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 4",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 4",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 4",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 5",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 5",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 5",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 6",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 6",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 6",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 7",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 7",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 7",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Auftrag 8",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Vorher 8",
+    "config": {
+      "max": 255,
+      "mode": "text"
+    }
+  },
+  {
+    "helper_type": "input_datetime",
+    "name": "Truma Timer Termin 8",
+    "config": {
+      "has_date": true,
+      "has_time": true
+    }
+  },
+  {
+    "helper_type": "input_text",
+    "name": "Truma Timer Aktuell",
+    "config": {
+      "max": 64,
+      "mode": "text"
+    }
+  }
+]
