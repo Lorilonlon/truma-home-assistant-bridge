@@ -1,0 +1,71 @@
+{
+  "id": "truma_timer_zeitplan",
+  "alias": "Truma Timer Zeitplan",
+  "description": "Start/Ende per Datumshilfe; Wiederanlauf und Minutenprüfung erkennen verpasste oder unterbrochene Aufträge. Keine UI-Abhängigkeit.",
+  "mode": "single",
+  "max_exceeded": "silent",
+  "trace": {
+    "stored_traces": 10
+  },
+  "triggers": [
+    {
+      "trigger": "time",
+      "at": [
+        "input_datetime.truma_timer_termin",
+        "input_datetime.truma_timer_termin_2",
+        "input_datetime.truma_timer_termin_3",
+        "input_datetime.truma_timer_termin_4",
+        "input_datetime.truma_timer_termin_5",
+        "input_datetime.truma_timer_termin_6",
+        "input_datetime.truma_timer_termin_7",
+        "input_datetime.truma_timer_termin_8"
+      ]
+    },
+    {
+      "trigger": "homeassistant",
+      "event": "start"
+    },
+    {
+      "trigger": "event",
+      "event_type": "automation_reloaded"
+    },
+    {
+      "trigger": "time_pattern",
+      "minutes": "/1"
+    }
+  ],
+  "variables": {
+    "job_entities": [
+      "input_text.truma_timer_auftrag",
+      "input_text.truma_timer_auftrag_2",
+      "input_text.truma_timer_auftrag_3",
+      "input_text.truma_timer_auftrag_4",
+      "input_text.truma_timer_auftrag_5",
+      "input_text.truma_timer_auftrag_6",
+      "input_text.truma_timer_auftrag_7",
+      "input_text.truma_timer_auftrag_8"
+    ]
+  },
+  "actions": [
+    {
+      "variables": {
+        "due_jobs": "{% set ns = namespace(jobs=[]) %}\n{% for ent in job_entities %}{% set j=states(ent)|from_json({}) %}\n{% if j.get('p') in ['saving','armed','executing','running','restoring','waiting'] %}\n{% set due = j.e if j.p == 'running' else j.s %}\n{% if due <= as_timestamp(now()) or j.p in ['saving','executing','restoring'] %}\n{% set ns.jobs=ns.jobs+[dict(slot=loop.index0, when=due, priority=0 if j.p=='running' else 1, created=j.get('c',0))] %}\n{% endif %}{% endif %}{% endfor %}\n{{ ns.jobs | sort(attribute='created') | sort(attribute='priority') | sort(attribute='when') }}"
+      }
+    },
+    {
+      "repeat": {
+        "for_each": "{{ due_jobs }}",
+        "sequence": [
+          {
+            "action": "script.truma_timer_verwalten",
+            "data": {
+              "operation": "tick",
+              "slot": "{{ repeat.item.slot }}"
+            },
+            "continue_on_error": true
+          }
+        ]
+      }
+    }
+  ]
+}

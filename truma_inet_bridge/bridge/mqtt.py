@@ -144,10 +144,60 @@ class MQTT:
                 "value_template": "{{ value_json.get('" + field + "') if value_json.get('" + field + "') is not none else 'None' }}",
                 "availability": [{"topic": self.base + "/bridge"}, {"topic": self.base + "/connection"}],
                 "availability_mode": "all"}
+        timer_availability = {"availability": [{"topic": self.base + "/bridge"},
+                                               {"topic": self.base + "/timer/available"}],
+                              "availability_mode": "all"}
+        items["sensor/meldungen"] = {
+            "name": "Meldungen", "icon": "mdi:alert-circle-outline",
+            "state_topic": self.base + "/faults", "value_template": "{{ value_json.summary }}",
+            "json_attributes_topic": self.base + "/faults", **self.availability()}
+        items["sensor/meldeereignis"] = {
+            "name": "Meldeereignis", "icon": "mdi:message-alert-outline", "entity_category": "diagnostic",
+            "state_topic": self.base + "/fault-event", "value_template": "{{ value_json.id }}",
+            "json_attributes_topic": self.base + "/fault-event", **self.availability()}
+        items["button/meldungen_gesehen"] = {
+            "name": "Meldungen gesehen", "icon": "mdi:check", "payload_press": "seen",
+            "command_topic": self.base + "/set/fault_seen", **self.availability()}
+        timer_control = {"availability": [{"topic": self.base + "/bridge"},
+                                          {"topic": self.base + "/timer/control"}],
+                         "availability_mode": "all"}
+        items["sensor/timer"] = {
+            "name": "Timer", "icon": "mdi:clock-outline", "state_topic": self.base + "/timer/state",
+            "value_template": "{{ 'Aktiv' if value_json.enabled == true else 'Aus' if value_json.enabled == false else 'Nicht eingerichtet' }}",
+            "json_attributes_topic": self.base + "/timer/state", **timer_availability}
+        items["switch/timer"] = {
+            "name": "Timer aktiv", "icon": "mdi:clock-check-outline", "optimistic": False,
+            "command_topic": self.base + "/set/timer_enabled", "state_topic": self.base + "/timer/state",
+            "value_template": "{{ 'ON' if value_json.enabled == true else 'OFF' if value_json.enabled == false else 'None' }}",
+            **timer_control}
+        items["button/timer_off"] = {
+            "name": "Timer ausschalten", "icon": "mdi:clock-remove-outline", "payload_press": "OFF",
+            "command_topic": self.base + "/set/timer_enabled",
+            "availability": [{"topic": self.base + "/bridge"}, {"topic": self.base + "/timer/stop"}],
+            "availability_mode": "all"}
+        for field, name in (("start", "Timer Beginn"), ("stop", "Timer Ende")):
+            items["text/timer_" + field] = {
+                "name": name, "icon": "mdi:clock-outline", "mode": "text", "min": 5, "max": 5,
+                "pattern": r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", "optimistic": False,
+                "command_topic": self.base + "/set/timer_" + field,
+                "state_topic": self.base + "/timer/state",
+                "value_template": "{{ value_json." + field + " }}", **timer_control}
+        for field, name, options in (
+                ("temperature", "Timer Raumtemperatur", ["Aus"] + [str(t) for t in range(5, 31)]),
+                ("fan", "Timer Gebläse", ["Aus", "Eco", "High"]),
+                ("water", "Timer Warmwasser", ["Aus", "Niedrig", "Hoch", "Boost"])):
+            items["select/timer_" + field] = {
+                "name": name, "options": options, "optimistic": False,
+                "command_topic": self.base + "/set/timer_" + field,
+                "state_topic": self.base + "/timer/state",
+                "value_template": ("{{ value_json.temperature | string if value_json.temperature is not none else 'Aus' }}"
+                                   if field == "temperature" else "{{ value_json." + field +
+                                   " if value_json." + field + " in " + repr(options) + " else 'None' }}"),
+                **timer_control}
         for key, config in items.items():
             domain, name = key.split("/")
             self.publish(f"homeassistant/{domain}/{self.uid}/{name}/config", {
-                "unique_id": f"{self.uid}_{name}", "object_id": f"truma_inet_{name}",
+                "unique_id": f"{self.uid}_{name}", "default_entity_id": f"{domain}.truma_inet_{name}",
                 "device": device, **config})
         # Availability first stays offline until a complete live read succeeds.
         self.update()
@@ -158,6 +208,28 @@ class MQTT:
         self.publish(self.base + "/connection", "online" if b.ready else "offline")
         self.publish(self.base + "/control", "online" if b.ready and b.options["allow_control"] else "offline")
         self.publish(self.base + "/status", b.status[:250])
+        journal = getattr(b, "faults", None)
+        if journal:
+            self.publish(self.base + "/faults", journal.view(b.ready))
+            self.publish(self.base + "/fault-event", journal.event)
+        timer = getattr(b, "timer", None)
+        timer_ready = b.ready and timer is not None
+        timer_writable = bool(getattr(getattr(b, "backend", None), "timer_writable", False))
+        stop_available = (b.ready and b.options["allow_control"] and
+                          b.options.get("allow_timer_control", False) and timer_writable)
+        if timer_ready:
+            # Populate HH:MM values before making text entities available.
+            # Otherwise HA can validate a previous null as too short (min=5).
+            self.publish(self.base + "/timer/state", timer)
+            self.publish(self.base + "/timer/available", "online")
+            self.publish(self.base + "/timer/control", "online" if stop_available else "offline")
+        else:
+            # Never leave old timer values actionable after a failed read.
+            self.publish(self.base + "/timer/available", "offline")
+            self.publish(self.base + "/timer/control", "offline")
+            self.publish(self.base + "/timer/state", {"enabled": None, "start": None,
+                         "stop": None, "temperature": None, "fan": "Unbekannt", "water": "Unbekannt"})
+        self.publish(self.base + "/timer/stop", "online" if stop_available else "offline")
         if b.ready:
             self.publish(self.base + "/state", b.state)
             self.publish(self.base + "/updated", b.updated)

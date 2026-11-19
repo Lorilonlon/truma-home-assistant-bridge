@@ -1,0 +1,1837 @@
+{
+  "alias": "Truma Timer verwalten",
+  "description": "Persistenter HA-Starttimer. Einmalig oder täglich, optional Vorzustand am Ende wiederherstellen. Drei begrenzte Versuche; kein Nachholen verpasster Starts. Mit KI-Unterstützung entwickelt.",
+  "mode": "single",
+  "max_exceeded": "silent",
+  "trace": {
+    "stored_traces": 20
+  },
+  "fields": {
+    "operation": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "request_id": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "start_at": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "end_at": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "temperature": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "fan": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "water": {
+      "selector": {
+        "text": {}
+      }
+    },
+    "daily": {
+      "selector": {
+        "boolean": {}
+      }
+    },
+    "use_end": {
+      "selector": {
+        "boolean": {}
+      }
+    },
+    "slot": {
+      "selector": {
+        "number": {
+          "min": 0,
+          "max": 7,
+          "mode": "box"
+        }
+      }
+    },
+    "overlap_ids": {
+      "selector": {
+        "object": {}
+      }
+    },
+    "expected_job": {
+      "selector": {
+        "object": {}
+      }
+    }
+  },
+  "variables": {
+    "notify_service": "",
+    "job_entities": [
+      "input_text.truma_timer_auftrag",
+      "input_text.truma_timer_auftrag_2",
+      "input_text.truma_timer_auftrag_3",
+      "input_text.truma_timer_auftrag_4",
+      "input_text.truma_timer_auftrag_5",
+      "input_text.truma_timer_auftrag_6",
+      "input_text.truma_timer_auftrag_7",
+      "input_text.truma_timer_auftrag_8"
+    ],
+    "previous_entities": [
+      "input_text.truma_timer_vorher",
+      "input_text.truma_timer_vorher_2",
+      "input_text.truma_timer_vorher_3",
+      "input_text.truma_timer_vorher_4",
+      "input_text.truma_timer_vorher_5",
+      "input_text.truma_timer_vorher_6",
+      "input_text.truma_timer_vorher_7",
+      "input_text.truma_timer_vorher_8"
+    ],
+    "when_entities": [
+      "input_datetime.truma_timer_termin",
+      "input_datetime.truma_timer_termin_2",
+      "input_datetime.truma_timer_termin_3",
+      "input_datetime.truma_timer_termin_4",
+      "input_datetime.truma_timer_termin_5",
+      "input_datetime.truma_timer_termin_6",
+      "input_datetime.truma_timer_termin_7",
+      "input_datetime.truma_timer_termin_8"
+    ]
+  },
+  "sequence": [
+    {
+      "if": [
+        {
+          "condition": "not",
+          "conditions": [
+            {
+              "condition": "template",
+              "value_template": "{{ slot | default(0) | string in ['0','1','2','3','4','5','6','7'] }}"
+            }
+          ]
+        }
+      ],
+      "then": [
+        {
+          "stop": "Ungültiger Timerplatz.",
+          "error": true
+        }
+      ]
+    },
+    {
+      "variables": {
+        "slot": "{{ slot | default(0) | int }}",
+        "job_entity": "{{ job_entities[slot] }}",
+        "previous_entity": "{{ previous_entities[slot] }}",
+        "when_entity": "{{ when_entities[slot] }}",
+        "job": "{{ states(job_entity) | from_json({}) }}"
+      }
+    },
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "template",
+              "value_template": "{{ operation == 'submit' }}"
+            }
+          ],
+          "sequence": [
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ (expected_job is defined and expected_job == job and job.get('p') in ['armed','waiting','error']) or (expected_job is not defined and job.get('p') not in ['saving','armed','executing','running','restoring','waiting']) }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Timer wurde inzwischen geändert oder gestartet. Bitte erneut öffnen; laufende Timer können nicht bearbeitet werden.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ request_id is defined and request_id is string and request_id | regex_match('^[a-zA-Z0-9-]{8,40}$') }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Ungültige Auftragskennung.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ temperature is defined and temperature | string in ['Aus'] + (range(5,31) | map('string') | list) and fan is defined and fan in ['Aus','Eco','High'] and water is defined and water in ['Aus','Niedrig','Hoch','Boost'] }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Bitte alle Betriebswerte vollständig ausfüllen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ (temperature | string == 'Aus' and fan == 'Aus') or (temperature | string != 'Aus' and fan in ['Eco','High']) }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Bei Heizung aus auch Gebläse Aus wählen; sonst Eco oder High.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ daily is defined and daily is boolean and use_end is defined and use_end is boolean }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Wiederholung und Endzeit ausdrücklich auswählen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ start_at is defined and start_at is string and start_at | regex_match('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$') }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Beginn fehlt.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "variables": {
+                "start_dt": "{{ strptime(start_at, '%Y-%m-%dT%H:%M', none) }}"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ start_dt is not none }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Ungültiger Beginn.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "variables": {
+                "start_ts": "{{ as_timestamp(as_datetime(start_dt).replace(tzinfo=now().tzinfo)) | int }}"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ start_ts > as_timestamp(now()) + 60 and (start_ts | timestamp_custom('%Y-%m-%dT%H:%M', true)) == start_at }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Beginn muss mindestens eine Minute in der Zukunft liegen und eine gültige Ortszeit sein.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "variables": {
+                "end_ts": 0
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ use_end }}"
+                }
+              ],
+              "then": [
+                {
+                  "if": [
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ end_at is defined and end_at is string and end_at | regex_match('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$') }}"
+                        }
+                      ]
+                    }
+                  ],
+                  "then": [
+                    {
+                      "stop": "Ende fehlt.",
+                      "error": true
+                    }
+                  ]
+                },
+                {
+                  "variables": {
+                    "end_dt": "{{ strptime(end_at, '%Y-%m-%dT%H:%M', none) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ end_dt is not none }}"
+                        }
+                      ]
+                    }
+                  ],
+                  "then": [
+                    {
+                      "stop": "Ungültiges Ende.",
+                      "error": true
+                    }
+                  ]
+                },
+                {
+                  "variables": {
+                    "end_ts": "{{ as_timestamp(as_datetime(end_dt).replace(tzinfo=now().tzinfo)) | int }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ end_ts >= start_ts + 300 and (end_ts | timestamp_custom('%Y-%m-%dT%H:%M', true)) == end_at and (not daily or end_ts < start_ts + 86400) }}"
+                        }
+                      ]
+                    }
+                  ],
+                  "then": [
+                    {
+                      "stop": "Ende mindestens fünf Minuten nach Beginn; täglich kürzer als 24 Stunden.",
+                      "error": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ is_state('sensor.truma_inet_timer','Aus') }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Den Truma-Gerätetimer zuerst ausschalten.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ is_state('automation.truma_timer_zeitplan','on') }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Die HA-Timerüberwachung ist nicht aktiv.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "variables": {
+                "overlaps": "{% set out = namespace(ids=[]) %}\n{% set a0 = as_local(as_datetime(start_ts)) %}\n{% set a = a0.date().toordinal()*1440+a0.hour*60+a0.minute %}\n{% set ae0 = as_local(as_datetime(end_ts)) if end_ts else none %}\n{% set alen = ae0.date().toordinal()*1440+ae0.hour*60+ae0.minute-a if ae0 else 1000000000 %}\n{% for ent in job_entities %}{% set other = states(ent) | from_json({}) %}\n{% if ent != job_entity and other.get('p') in ['armed','waiting','executing','running','restoring'] %}\n{% set b0 = as_local(as_datetime(other.s)) %}\n{% set b = b0.date().toordinal()*1440+b0.hour*60+b0.minute %}\n{% set be0 = as_local(as_datetime(other.e)) if other.e else none %}\n{% set blen = be0.date().toordinal()*1440+be0.hour*60+be0.minute-b if be0 else 1000000000 %}\n{% set base = [a,b] | max %}{% set ka = ((base-a)/1440) | int %}{% set kb = ((base-b)/1440) | int %}\n{% set hit = namespace(yes=false) %}\n{% for i in ([0,ka-1,ka,ka+1] if daily else [0]) %}{% for k in ([0,kb-1,kb,kb+1] if other.d else [0]) %}\n{% if i >= 0 and k >= 0 and a+i*1440 < b+k*1440+blen and b+k*1440 < a+i*1440+alen %}{% set hit.yes=true %}{% endif %}\n{% endfor %}{% endfor %}{% if hit.yes %}{% set out.ids=out.ids+[other.id] %}{% endif %}\n{% endif %}{% endfor %}{{ out.ids | sort }}"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ overlap_ids | default([]) | sort == overlaps }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Überschneidung: Bitte die betroffenen Timer erneut prüfen und ausdrücklich bestätigen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "variables": {
+                "job": "{{ dict(id=request_id, p='saving', s=start_ts, e=end_ts, d=daily, t=temperature | string, f=fan, w=water, r='', c=as_timestamp(now()) | int) }}"
+              }
+            },
+            {
+              "action": "input_text.set_value",
+              "target": {
+                "entity_id": "{{ job_entity }}"
+              },
+              "data": {
+                "value": "{{ dict(job, v=true) | to_json }}"
+              }
+            },
+            {
+              "action": "input_datetime.set_datetime",
+              "target": {
+                "entity_id": "{{ when_entity }}"
+              },
+              "data": {
+                "timestamp": "{{ job.s }}"
+              }
+            },
+            {
+              "action": "input_text.set_value",
+              "target": {
+                "entity_id": "{{ job_entity }}"
+              },
+              "data": {
+                "value": "{{ dict(dict(job, p='armed', r=''), v=true) | to_json }}"
+              }
+            },
+            {
+              "stop": "Timer in Home Assistant gespeichert. Noch keine Heizbefehle gesendet."
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "template",
+              "value_template": "{{ operation == 'cancel' }}"
+            }
+          ],
+          "sequence": [
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ expected_job is not defined or expected_job == job }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Timer wurde inzwischen geändert. Bitte erneut prüfen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ job.get('p') not in ['executing','restoring'] }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Übertragung läuft.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ job.get('p') != 'running' or states('input_text.truma_timer_aktuell') != job.get('id') }}"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "stop": "Aktiver Timer: Vorzustand über Jetzt beenden wiederherstellen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "action": "input_text.set_value",
+              "target": {
+                "entity_id": "{{ job_entity }}"
+              },
+              "data": {
+                "value": "{{ dict(dict(job, p='cancelled', r=''), v=true) | to_json }}"
+              }
+            },
+            {
+              "stop": "Zeitplan entfernt. Betriebswerte unverändert."
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "template",
+              "value_template": "{{ operation in ['tick','finish'] }}"
+            }
+          ],
+          "sequence": [
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ job.get('p') in ['saving','executing','restoring'] }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "input_text.set_value",
+                  "target": {
+                    "entity_id": "{{ job_entity }}"
+                  },
+                  "data": {
+                    "value": "{{ dict(dict(job, p='error', r='interrupted'), v=true) | to_json }}"
+                  }
+                },
+                {
+                  "action": "persistent_notification.create",
+                  "data": {
+                    "title": "Truma · Timer",
+                    "message": "Timer-Ausführung wurde unterbrochen. Keine automatische Wiederholung; mögliche Teiländerungen bitte prüfen.",
+                    "notification_id": "truma_timer_auftrag"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ notify_service != '' }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "action": "{{ notify_service }}",
+                      "data": {
+                        "title": "Truma · Timer",
+                        "message": "Timer-Ausführung wurde unterbrochen. Keine automatische Wiederholung; mögliche Teiländerungen bitte prüfen.",
+                        "data": {
+                          "tag": "truma_timer_auftrag",
+                          "channel": "Truma Meldungen",
+                          "clickAction": "/wohnmobil-klima/klima",
+                          "url": "/wohnmobil-klima/klima"
+                        }
+                      },
+                      "continue_on_error": true
+                    }
+                  ]
+                },
+                {
+                  "stop": "Timer-Ausführung wurde unterbrochen. Keine automatische Wiederholung; mögliche Teiländerungen bitte prüfen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ job.get('p') in ['armed','waiting','running'] }}"
+            },
+            {
+              "variables": {
+                "restoring": "{{ job.p == 'running' }}",
+                "due": "{{ job.e if restoring else job.s }}",
+                "desired": {},
+                "previous": {},
+                "completion_reason": ""
+              }
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ as_timestamp(now()) >= due or (operation == 'finish' and restoring) }}"
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ restoring and states('input_text.truma_timer_aktuell') != job.id }}"
+                }
+              ],
+              "then": [
+                {
+                  "variables": {
+                    "completion_reason": "superseded"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ job.d }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "variables": {
+                        "next_s": "{% set old = as_local(as_datetime(job.s)) %}{% set dt = today_at(old.strftime('%H:%M')) %}{{ as_timestamp(dt + timedelta(days=1) if dt <= now() else dt) | int }}",
+                        "next_e": "{% if job.e %}{% set old_s = as_local(as_datetime(job.s)) %}{% set old_e = as_local(as_datetime(job.e)) %}{% set ns = as_local(as_datetime(next_s)) %}{{ as_timestamp(ns.replace(hour=old_e.hour, minute=old_e.minute) + timedelta(days=1 if old_e.date() > old_s.date() else 0)) | int }}{% else %}0{% endif %}"
+                      }
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ (next_s | timestamp_custom('%H:%M',true)) != (job.s | timestamp_custom('%H:%M',true)) or (job.e and (next_e | timestamp_custom('%H:%M',true)) != (job.e | timestamp_custom('%H:%M',true))) }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_text.set_value",
+                          "target": {
+                            "entity_id": "{{ job_entity }}"
+                          },
+                          "data": {
+                            "value": "{{ dict(dict(job, p='error', r='clock'), v=true) | to_json }}"
+                          }
+                        },
+                        {
+                          "action": "persistent_notification.create",
+                          "data": {
+                            "title": "Truma · Timer",
+                            "message": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                            "notification_id": "truma_timer_auftrag"
+                          }
+                        },
+                        {
+                          "if": [
+                            {
+                              "condition": "template",
+                              "value_template": "{{ notify_service != '' }}"
+                            }
+                          ],
+                          "then": [
+                            {
+                              "action": "{{ notify_service }}",
+                              "data": {
+                                "title": "Truma · Timer",
+                                "message": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                                "data": {
+                                  "tag": "truma_timer_auftrag",
+                                  "channel": "Truma Meldungen",
+                                  "clickAction": "/wohnmobil-klima/klima",
+                                  "url": "/wohnmobil-klima/klima"
+                                }
+                              },
+                              "continue_on_error": true
+                            }
+                          ]
+                        },
+                        {
+                          "stop": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "input_datetime.set_datetime",
+                      "target": {
+                        "entity_id": "{{ when_entity }}"
+                      },
+                      "data": {
+                        "timestamp": "{{ next_s }}"
+                      }
+                    },
+                    {
+                      "action": "input_text.set_value",
+                      "target": {
+                        "entity_id": "{{ job_entity }}"
+                      },
+                      "data": {
+                        "value": "{{ dict(dict(job, p='waiting', s=next_s, e=next_e, r=completion_reason), v=true) | to_json }}"
+                      }
+                    }
+                  ],
+                  "else": [
+                    {
+                      "action": "input_text.set_value",
+                      "target": {
+                        "entity_id": "{{ job_entity }}"
+                      },
+                      "data": {
+                        "value": "{{ dict(dict(job, p='done', r=completion_reason, finished=as_timestamp(now()) | int), v=true) | to_json }}"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "stop": "Alle angeforderten Einstellungen von der Box bestätigt."
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ not restoring and as_timestamp(now()) - due > 90 }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "input_text.set_value",
+                  "target": {
+                    "entity_id": "{{ job_entity }}"
+                  },
+                  "data": {
+                    "value": "{{ dict(dict(job, p='error', r='missed'), v=true) | to_json }}"
+                  }
+                },
+                {
+                  "action": "persistent_notification.create",
+                  "data": {
+                    "title": "Truma · Timer",
+                    "message": "Timerstart verpasst (Home Assistant war nicht rechtzeitig bereit). Keine verspätete Ausführung; Zeitplan bitte neu setzen.",
+                    "notification_id": "truma_timer_auftrag"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ notify_service != '' }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "action": "{{ notify_service }}",
+                      "data": {
+                        "title": "Truma · Timer",
+                        "message": "Timerstart verpasst (Home Assistant war nicht rechtzeitig bereit). Keine verspätete Ausführung; Zeitplan bitte neu setzen.",
+                        "data": {
+                          "tag": "truma_timer_auftrag",
+                          "channel": "Truma Meldungen",
+                          "clickAction": "/wohnmobil-klima/klima",
+                          "url": "/wohnmobil-klima/klima"
+                        }
+                      },
+                      "continue_on_error": true
+                    }
+                  ]
+                },
+                {
+                  "stop": "Timerstart verpasst (Home Assistant war nicht rechtzeitig bereit). Keine verspätete Ausführung; Zeitplan bitte neu setzen.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ restoring and as_timestamp(now()) - due > 86400 }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "input_text.set_value",
+                  "target": {
+                    "entity_id": "{{ job_entity }}"
+                  },
+                  "data": {
+                    "value": "{{ dict(dict(job, p='error', r='stale'), v=true) | to_json }}"
+                  }
+                },
+                {
+                  "action": "persistent_notification.create",
+                  "data": {
+                    "title": "Truma · Timer",
+                    "message": "Timerende liegt mehr als einen Tag zurück. Vorzustand wird nicht ungeprüft wiederhergestellt.",
+                    "notification_id": "truma_timer_auftrag"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ notify_service != '' }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "action": "{{ notify_service }}",
+                      "data": {
+                        "title": "Truma · Timer",
+                        "message": "Timerende liegt mehr als einen Tag zurück. Vorzustand wird nicht ungeprüft wiederhergestellt.",
+                        "data": {
+                          "tag": "truma_timer_auftrag",
+                          "channel": "Truma Meldungen",
+                          "clickAction": "/wohnmobil-klima/klima",
+                          "url": "/wohnmobil-klima/klima"
+                        }
+                      },
+                      "continue_on_error": true
+                    }
+                  ]
+                },
+                {
+                  "stop": "Timerende liegt mehr als einen Tag zurück. Vorzustand wird nicht ungeprüft wiederhergestellt.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "wait_template": "{{ is_state('binary_sensor.truma_inet_verbindung','on') and is_state('sensor.truma_inet_timer','Aus') and states('climate.truma_inet_heizung') in ['off','heat'] and states('select.truma_inet_warmwasser') in ['Aus','Niedrig','Hoch','Boost'] and not is_state('script.truma_heizung_neu_starten','on') }}",
+              "timeout": {
+                "seconds": 30
+              },
+              "continue_on_timeout": true
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "binary_sensor.truma_inet_verbindung",
+                      "state": "on"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "sensor.truma_inet_timer",
+                      "state": "Aus"
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.truma_inet_heizung",
+                      "state": [
+                        "off",
+                        "heat"
+                      ]
+                    },
+                    {
+                      "condition": "state",
+                      "entity_id": "select.truma_inet_warmwasser",
+                      "state": [
+                        "Aus",
+                        "Niedrig",
+                        "Hoch",
+                        "Boost"
+                      ]
+                    },
+                    {
+                      "condition": "not",
+                      "conditions": [
+                        {
+                          "condition": "state",
+                          "entity_id": "script.truma_heizung_neu_starten",
+                          "state": "on"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "action": "input_text.set_value",
+                  "target": {
+                    "entity_id": "{{ job_entity }}"
+                  },
+                  "data": {
+                    "value": "{{ dict(dict(job, p='error', r='unavailable'), v=true) | to_json }}"
+                  }
+                },
+                {
+                  "action": "persistent_notification.create",
+                  "data": {
+                    "title": "Truma · Timer",
+                    "message": "Timer nicht ausgeführt: Verbindung oder Betriebswerte fehlen, Gerätetimer oder Heizungsneustart aktiv.",
+                    "notification_id": "truma_timer_auftrag"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ notify_service != '' }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "action": "{{ notify_service }}",
+                      "data": {
+                        "title": "Truma · Timer",
+                        "message": "Timer nicht ausgeführt: Verbindung oder Betriebswerte fehlen, Gerätetimer oder Heizungsneustart aktiv.",
+                        "data": {
+                          "tag": "truma_timer_auftrag",
+                          "channel": "Truma Meldungen",
+                          "clickAction": "/wohnmobil-klima/klima",
+                          "url": "/wohnmobil-klima/klima"
+                        }
+                      },
+                      "continue_on_error": true
+                    }
+                  ]
+                },
+                {
+                  "stop": "Timer nicht ausgeführt: Verbindung oder Betriebswerte fehlen, Gerätetimer oder Heizungsneustart aktiv.",
+                  "error": true
+                }
+              ]
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ restoring }}"
+                }
+              ],
+              "then": [
+                {
+                  "variables": {
+                    "previous": "{{ states(previous_entity) | from_json({}) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ previous.get('id') != job.id or previous.get('m') not in ['off','heat'] }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "action": "input_text.set_value",
+                      "target": {
+                        "entity_id": "{{ job_entity }}"
+                      },
+                      "data": {
+                        "value": "{{ dict(dict(job, p='error', r='snapshot'), v=true) | to_json }}"
+                      }
+                    },
+                    {
+                      "action": "persistent_notification.create",
+                      "data": {
+                        "title": "Truma · Timer",
+                        "message": "Gesicherter Vorzustand fehlt. Keine ungeprüfte Wiederherstellung.",
+                        "notification_id": "truma_timer_auftrag"
+                      }
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ notify_service != '' }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "{{ notify_service }}",
+                          "data": {
+                            "title": "Truma · Timer",
+                            "message": "Gesicherter Vorzustand fehlt. Keine ungeprüfte Wiederherstellung.",
+                            "data": {
+                              "tag": "truma_timer_auftrag",
+                              "channel": "Truma Meldungen",
+                              "clickAction": "/wohnmobil-klima/klima",
+                              "url": "/wohnmobil-klima/klima"
+                            }
+                          },
+                          "continue_on_error": true
+                        }
+                      ]
+                    },
+                    {
+                      "stop": "Gesicherter Vorzustand fehlt. Keine ungeprüfte Wiederherstellung.",
+                      "error": true
+                    }
+                  ]
+                },
+                {
+                  "variables": {
+                    "desired": "{{ previous }}"
+                  }
+                }
+              ],
+              "else": [
+                {
+                  "variables": {
+                    "desired": "{{ dict(m='off' if job.t == 'Aus' else 'heat', t=none if job.t == 'Aus' else job.t | int, f=job.f, w=job.w) }}"
+                  }
+                },
+                {
+                  "if": [
+                    {
+                      "condition": "template",
+                      "value_template": "{{ job.e > 0 }}"
+                    }
+                  ],
+                  "then": [
+                    {
+                      "variables": {
+                        "capture_started": "{{ as_timestamp(now()) }}"
+                      }
+                    },
+                    {
+                      "wait_template": "{{ is_state('binary_sensor.truma_inet_verbindung','on') and is_state('sensor.truma_inet_timer','Aus') and states('climate.truma_inet_heizung') in ['off','heat'] and states('select.truma_inet_warmwasser') in ['Aus','Niedrig','Hoch','Boost'] and not is_state('script.truma_heizung_neu_starten','on') and as_timestamp(states('sensor.truma_inet_letzte_aktualisierung'), 0) >= capture_started }}",
+                      "timeout": {
+                        "seconds": 30
+                      },
+                      "continue_on_timeout": true
+                    },
+                    {
+                      "if": [
+                        {
+                          "condition": "template",
+                          "value_template": "{{ not wait.completed or state_attr('climate.truma_inet_heizung','temperature') is none or state_attr('climate.truma_inet_heizung','fan_mode') not in ['Aus','Eco','High'] }}"
+                        }
+                      ],
+                      "then": [
+                        {
+                          "action": "input_text.set_value",
+                          "target": {
+                            "entity_id": "{{ job_entity }}"
+                          },
+                          "data": {
+                            "value": "{{ dict(dict(job, p='error', r='snapshot'), v=true) | to_json }}"
+                          }
+                        },
+                        {
+                          "action": "persistent_notification.create",
+                          "data": {
+                            "title": "Truma · Timer",
+                            "message": "Vorzustand nicht frisch und vollständig bekannt. Timer wurde nicht gestartet.",
+                            "notification_id": "truma_timer_auftrag"
+                          }
+                        },
+                        {
+                          "if": [
+                            {
+                              "condition": "template",
+                              "value_template": "{{ notify_service != '' }}"
+                            }
+                          ],
+                          "then": [
+                            {
+                              "action": "{{ notify_service }}",
+                              "data": {
+                                "title": "Truma · Timer",
+                                "message": "Vorzustand nicht frisch und vollständig bekannt. Timer wurde nicht gestartet.",
+                                "data": {
+                                  "tag": "truma_timer_auftrag",
+                                  "channel": "Truma Meldungen",
+                                  "clickAction": "/wohnmobil-klima/klima",
+                                  "url": "/wohnmobil-klima/klima"
+                                }
+                              },
+                              "continue_on_error": true
+                            }
+                          ]
+                        },
+                        {
+                          "stop": "Vorzustand nicht frisch und vollständig bekannt. Timer wurde nicht gestartet.",
+                          "error": true
+                        }
+                      ]
+                    },
+                    {
+                      "action": "input_text.set_value",
+                      "target": {
+                        "entity_id": "{{ previous_entity }}"
+                      },
+                      "data": {
+                        "value": "{{ dict(v=true, id=job.id, m=states('climate.truma_inet_heizung'), t=state_attr('climate.truma_inet_heizung','temperature'), f=state_attr('climate.truma_inet_heizung','fan_mode'), w=states('select.truma_inet_warmwasser')) | to_json }}"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "action": "input_text.set_value",
+              "target": {
+                "entity_id": "{{ job_entity }}"
+              },
+              "data": {
+                "value": "{{ dict(dict(job, p='restoring' if restoring else 'executing', r=''), v=true) | to_json }}"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ not restoring }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "input_text.set_value",
+                  "target": {
+                    "entity_id": "input_text.truma_timer_aktuell"
+                  },
+                  "data": {
+                    "value": "{{ job.id }}"
+                  }
+                }
+              ]
+            },
+            {
+              "repeat": {
+                "count": 3,
+                "sequence": [
+                  {
+                    "variables": {
+                      "attempt_started": "{{ as_timestamp(now()) }}"
+                    }
+                  },
+                  {
+                    "wait_template": "{{ is_state('binary_sensor.truma_inet_verbindung','on') and is_state('sensor.truma_inet_timer','Aus') and states('climate.truma_inet_heizung') in ['off','heat'] and states('select.truma_inet_warmwasser') in ['Aus','Niedrig','Hoch','Boost'] and not is_state('script.truma_heizung_neu_starten','on') }}",
+                    "timeout": {
+                      "seconds": 20
+                    },
+                    "continue_on_timeout": true
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "template",
+                        "value_template": "{{ desired.m == 'off' }}"
+                      }
+                    ],
+                    "then": [
+                      {
+                        "if": [
+                          {
+                            "condition": "state",
+                            "entity_id": "binary_sensor.truma_inet_verbindung",
+                            "state": "on"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "sensor.truma_inet_timer",
+                            "state": "Aus"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "climate.truma_inet_heizung",
+                            "state": [
+                              "off",
+                              "heat"
+                            ]
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "select.truma_inet_warmwasser",
+                            "state": [
+                              "Aus",
+                              "Niedrig",
+                              "Hoch",
+                              "Boost"
+                            ]
+                          },
+                          {
+                            "condition": "not",
+                            "conditions": [
+                              {
+                                "condition": "state",
+                                "entity_id": "script.truma_heizung_neu_starten",
+                                "state": "on"
+                              }
+                            ]
+                          }
+                        ],
+                        "then": [
+                          {
+                            "if": [
+                              {
+                                "condition": "not",
+                                "conditions": [
+                                  {
+                                    "condition": "template",
+                                    "value_template": "{{ is_state('climate.truma_inet_heizung',desired.m) }}"
+                                  }
+                                ]
+                              }
+                            ],
+                            "then": [
+                              {
+                                "action": "climate.set_hvac_mode",
+                                "target": {
+                                  "entity_id": "climate.truma_inet_heizung"
+                                },
+                                "data": {
+                                  "hvac_mode": "off"
+                                },
+                                "continue_on_error": true
+                              }
+                            ]
+                          },
+                          {
+                            "wait_template": "{{ is_state('climate.truma_inet_heizung',desired.m) }}",
+                            "timeout": {
+                              "seconds": 20
+                            },
+                            "continue_on_timeout": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "template",
+                        "value_template": "{{ desired.t is not none }}"
+                      }
+                    ],
+                    "then": [
+                      {
+                        "if": [
+                          {
+                            "condition": "state",
+                            "entity_id": "binary_sensor.truma_inet_verbindung",
+                            "state": "on"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "sensor.truma_inet_timer",
+                            "state": "Aus"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "climate.truma_inet_heizung",
+                            "state": [
+                              "off",
+                              "heat"
+                            ]
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "select.truma_inet_warmwasser",
+                            "state": [
+                              "Aus",
+                              "Niedrig",
+                              "Hoch",
+                              "Boost"
+                            ]
+                          },
+                          {
+                            "condition": "not",
+                            "conditions": [
+                              {
+                                "condition": "state",
+                                "entity_id": "script.truma_heizung_neu_starten",
+                                "state": "on"
+                              }
+                            ]
+                          },
+                          {
+                            "condition": "template",
+                            "value_template": "{{ desired.m == 'heat' or is_state('climate.truma_inet_heizung','off') }}"
+                          }
+                        ],
+                        "then": [
+                          {
+                            "if": [
+                              {
+                                "condition": "not",
+                                "conditions": [
+                                  {
+                                    "condition": "template",
+                                    "value_template": "{{ is_state_attr('climate.truma_inet_heizung','temperature',desired.t | int) }}"
+                                  }
+                                ]
+                              }
+                            ],
+                            "then": [
+                              {
+                                "action": "climate.set_temperature",
+                                "target": {
+                                  "entity_id": "climate.truma_inet_heizung"
+                                },
+                                "data": {
+                                  "temperature": "{{ desired.t | int }}"
+                                },
+                                "continue_on_error": true
+                              }
+                            ]
+                          },
+                          {
+                            "wait_template": "{{ is_state_attr('climate.truma_inet_heizung','temperature',desired.t | int) }}",
+                            "timeout": {
+                              "seconds": 20
+                            },
+                            "continue_on_timeout": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "template",
+                        "value_template": "{{ desired.m == 'heat' }}"
+                      }
+                    ],
+                    "then": [
+                      {
+                        "if": [
+                          {
+                            "condition": "state",
+                            "entity_id": "binary_sensor.truma_inet_verbindung",
+                            "state": "on"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "sensor.truma_inet_timer",
+                            "state": "Aus"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "climate.truma_inet_heizung",
+                            "state": [
+                              "off",
+                              "heat"
+                            ]
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "select.truma_inet_warmwasser",
+                            "state": [
+                              "Aus",
+                              "Niedrig",
+                              "Hoch",
+                              "Boost"
+                            ]
+                          },
+                          {
+                            "condition": "not",
+                            "conditions": [
+                              {
+                                "condition": "state",
+                                "entity_id": "script.truma_heizung_neu_starten",
+                                "state": "on"
+                              }
+                            ]
+                          },
+                          {
+                            "condition": "template",
+                            "value_template": "{{ is_state_attr('climate.truma_inet_heizung','temperature',desired.t | int) }}"
+                          }
+                        ],
+                        "then": [
+                          {
+                            "if": [
+                              {
+                                "condition": "not",
+                                "conditions": [
+                                  {
+                                    "condition": "template",
+                                    "value_template": "{{ is_state('climate.truma_inet_heizung',desired.m) }}"
+                                  }
+                                ]
+                              }
+                            ],
+                            "then": [
+                              {
+                                "action": "climate.set_hvac_mode",
+                                "target": {
+                                  "entity_id": "climate.truma_inet_heizung"
+                                },
+                                "data": {
+                                  "hvac_mode": "heat"
+                                },
+                                "continue_on_error": true
+                              }
+                            ]
+                          },
+                          {
+                            "wait_template": "{{ is_state('climate.truma_inet_heizung',desired.m) }}",
+                            "timeout": {
+                              "seconds": 20
+                            },
+                            "continue_on_timeout": true
+                          }
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "condition": "state",
+                            "entity_id": "binary_sensor.truma_inet_verbindung",
+                            "state": "on"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "sensor.truma_inet_timer",
+                            "state": "Aus"
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "climate.truma_inet_heizung",
+                            "state": [
+                              "off",
+                              "heat"
+                            ]
+                          },
+                          {
+                            "condition": "state",
+                            "entity_id": "select.truma_inet_warmwasser",
+                            "state": [
+                              "Aus",
+                              "Niedrig",
+                              "Hoch",
+                              "Boost"
+                            ]
+                          },
+                          {
+                            "condition": "not",
+                            "conditions": [
+                              {
+                                "condition": "state",
+                                "entity_id": "script.truma_heizung_neu_starten",
+                                "state": "on"
+                              }
+                            ]
+                          },
+                          {
+                            "condition": "template",
+                            "value_template": "{{ is_state_attr('climate.truma_inet_heizung','temperature',desired.t | int) }}"
+                          },
+                          {
+                            "condition": "template",
+                            "value_template": "{{ is_state('climate.truma_inet_heizung',desired.m) }}"
+                          }
+                        ],
+                        "then": [
+                          {
+                            "if": [
+                              {
+                                "condition": "not",
+                                "conditions": [
+                                  {
+                                    "condition": "template",
+                                    "value_template": "{{ is_state_attr('climate.truma_inet_heizung','fan_mode',desired.f) }}"
+                                  }
+                                ]
+                              }
+                            ],
+                            "then": [
+                              {
+                                "action": "climate.set_fan_mode",
+                                "target": {
+                                  "entity_id": "climate.truma_inet_heizung"
+                                },
+                                "data": {
+                                  "fan_mode": "{{ desired.f }}"
+                                },
+                                "continue_on_error": true
+                              }
+                            ]
+                          },
+                          {
+                            "wait_template": "{{ is_state_attr('climate.truma_inet_heizung','fan_mode',desired.f) }}",
+                            "timeout": {
+                              "seconds": 20
+                            },
+                            "continue_on_timeout": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "state",
+                        "entity_id": "binary_sensor.truma_inet_verbindung",
+                        "state": "on"
+                      },
+                      {
+                        "condition": "state",
+                        "entity_id": "sensor.truma_inet_timer",
+                        "state": "Aus"
+                      },
+                      {
+                        "condition": "state",
+                        "entity_id": "climate.truma_inet_heizung",
+                        "state": [
+                          "off",
+                          "heat"
+                        ]
+                      },
+                      {
+                        "condition": "state",
+                        "entity_id": "select.truma_inet_warmwasser",
+                        "state": [
+                          "Aus",
+                          "Niedrig",
+                          "Hoch",
+                          "Boost"
+                        ]
+                      },
+                      {
+                        "condition": "not",
+                        "conditions": [
+                          {
+                            "condition": "state",
+                            "entity_id": "script.truma_heizung_neu_starten",
+                            "state": "on"
+                          }
+                        ]
+                      }
+                    ],
+                    "then": [
+                      {
+                        "if": [
+                          {
+                            "condition": "not",
+                            "conditions": [
+                              {
+                                "condition": "template",
+                                "value_template": "{{ is_state('select.truma_inet_warmwasser',desired.w) }}"
+                              }
+                            ]
+                          }
+                        ],
+                        "then": [
+                          {
+                            "action": "select.select_option",
+                            "target": {
+                              "entity_id": "select.truma_inet_warmwasser"
+                            },
+                            "data": {
+                              "option": "{{ desired.w }}"
+                            },
+                            "continue_on_error": true
+                          }
+                        ]
+                      },
+                      {
+                        "wait_template": "{{ is_state('select.truma_inet_warmwasser',desired.w) }}",
+                        "timeout": {
+                          "seconds": 20
+                        },
+                        "continue_on_timeout": true
+                      }
+                    ]
+                  },
+                  {
+                    "wait_template": "{{ is_state('binary_sensor.truma_inet_verbindung','on') and is_state('sensor.truma_inet_timer','Aus') and states('climate.truma_inet_heizung') in ['off','heat'] and states('select.truma_inet_warmwasser') in ['Aus','Niedrig','Hoch','Boost'] and not is_state('script.truma_heizung_neu_starten','on') and is_state('climate.truma_inet_heizung', desired.m) and (desired.t is none or is_state_attr('climate.truma_inet_heizung','temperature',desired.t | int)) and (desired.m == 'off' or is_state_attr('climate.truma_inet_heizung','fan_mode',desired.f)) and is_state('select.truma_inet_warmwasser',desired.w) and as_timestamp(states('sensor.truma_inet_letzte_aktualisierung'), 0) >= attempt_started }}",
+                    "timeout": {
+                      "seconds": 30
+                    },
+                    "continue_on_timeout": true
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "template",
+                        "value_template": "{{ wait.completed }}"
+                      }
+                    ],
+                    "then": [
+                      {
+                        "if": [
+                          {
+                            "condition": "template",
+                            "value_template": "{{ not restoring and job.e > 0 }}"
+                          }
+                        ],
+                        "then": [
+                          {
+                            "action": "input_datetime.set_datetime",
+                            "target": {
+                              "entity_id": "{{ when_entity }}"
+                            },
+                            "data": {
+                              "timestamp": "{{ job.e }}"
+                            }
+                          },
+                          {
+                            "action": "input_text.set_value",
+                            "target": {
+                              "entity_id": "{{ job_entity }}"
+                            },
+                            "data": {
+                              "value": "{{ dict(dict(job, p='running', r=''), v=true) | to_json }}"
+                            }
+                          },
+                          {
+                            "stop": "Start bestätigt; vorherige Einstellungen sind für das Ende gesichert."
+                          }
+                        ],
+                        "else": [
+                          {
+                            "if": [
+                              {
+                                "condition": "template",
+                                "value_template": "{{ job.d }}"
+                              }
+                            ],
+                            "then": [
+                              {
+                                "variables": {
+                                  "next_s": "{% set old = as_local(as_datetime(job.s)) %}{% set dt = today_at(old.strftime('%H:%M')) %}{{ as_timestamp(dt + timedelta(days=1) if dt <= now() else dt) | int }}",
+                                  "next_e": "{% if job.e %}{% set old_s = as_local(as_datetime(job.s)) %}{% set old_e = as_local(as_datetime(job.e)) %}{% set ns = as_local(as_datetime(next_s)) %}{{ as_timestamp(ns.replace(hour=old_e.hour, minute=old_e.minute) + timedelta(days=1 if old_e.date() > old_s.date() else 0)) | int }}{% else %}0{% endif %}"
+                                }
+                              },
+                              {
+                                "if": [
+                                  {
+                                    "condition": "template",
+                                    "value_template": "{{ (next_s | timestamp_custom('%H:%M',true)) != (job.s | timestamp_custom('%H:%M',true)) or (job.e and (next_e | timestamp_custom('%H:%M',true)) != (job.e | timestamp_custom('%H:%M',true))) }}"
+                                  }
+                                ],
+                                "then": [
+                                  {
+                                    "action": "input_text.set_value",
+                                    "target": {
+                                      "entity_id": "{{ job_entity }}"
+                                    },
+                                    "data": {
+                                      "value": "{{ dict(dict(job, p='error', r='clock'), v=true) | to_json }}"
+                                    }
+                                  },
+                                  {
+                                    "action": "persistent_notification.create",
+                                    "data": {
+                                      "title": "Truma · Timer",
+                                      "message": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                                      "notification_id": "truma_timer_auftrag"
+                                    }
+                                  },
+                                  {
+                                    "if": [
+                                      {
+                                        "condition": "template",
+                                        "value_template": "{{ notify_service != '' }}"
+                                      }
+                                    ],
+                                    "then": [
+                                      {
+                                        "action": "{{ notify_service }}",
+                                        "data": {
+                                          "title": "Truma · Timer",
+                                          "message": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                                          "data": {
+                                            "tag": "truma_timer_auftrag",
+                                            "channel": "Truma Meldungen",
+                                            "clickAction": "/wohnmobil-klima/klima",
+                                            "url": "/wohnmobil-klima/klima"
+                                          }
+                                        },
+                                        "continue_on_error": true
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "stop": "Zeitumstellung: Die nächste Ortszeit existiert nicht. Bitte den täglichen Timer neu planen.",
+                                    "error": true
+                                  }
+                                ]
+                              },
+                              {
+                                "action": "input_datetime.set_datetime",
+                                "target": {
+                                  "entity_id": "{{ when_entity }}"
+                                },
+                                "data": {
+                                  "timestamp": "{{ next_s }}"
+                                }
+                              },
+                              {
+                                "action": "input_text.set_value",
+                                "target": {
+                                  "entity_id": "{{ job_entity }}"
+                                },
+                                "data": {
+                                  "value": "{{ dict(dict(job, p='waiting', s=next_s, e=next_e, r=completion_reason), v=true) | to_json }}"
+                                }
+                              }
+                            ],
+                            "else": [
+                              {
+                                "action": "input_text.set_value",
+                                "target": {
+                                  "entity_id": "{{ job_entity }}"
+                                },
+                                "data": {
+                                  "value": "{{ dict(dict(job, p='done', r=completion_reason, finished=as_timestamp(now()) | int), v=true) | to_json }}"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "stop": "Alle angeforderten Einstellungen von der Box bestätigt."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "condition": "template",
+                        "value_template": "{{ repeat.index < 3 }}"
+                      }
+                    ],
+                    "then": [
+                      {
+                        "delay": {
+                          "seconds": 15
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "action": "input_text.set_value",
+              "target": {
+                "entity_id": "{{ job_entity }}"
+              },
+              "data": {
+                "value": "{{ dict(dict(job, p='error', r='confirmation'), v=true) | to_json }}"
+              }
+            },
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Truma · Timer",
+                "message": "Timer nach drei Versuchen nicht vollständig bestätigt. Es folgen keine weiteren Versuche. Teiländerungen sind möglich; bitte Heizung und Warmwasser prüfen.",
+                "notification_id": "truma_timer_auftrag"
+              }
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ notify_service != '' }}"
+                }
+              ],
+              "then": [
+                {
+                  "action": "{{ notify_service }}",
+                  "data": {
+                    "title": "Truma · Timer",
+                    "message": "Timer nach drei Versuchen nicht vollständig bestätigt. Es folgen keine weiteren Versuche. Teiländerungen sind möglich; bitte Heizung und Warmwasser prüfen.",
+                    "data": {
+                      "tag": "truma_timer_auftrag",
+                      "channel": "Truma Meldungen",
+                      "clickAction": "/wohnmobil-klima/klima",
+                      "url": "/wohnmobil-klima/klima"
+                    }
+                  },
+                  "continue_on_error": true
+                }
+              ]
+            },
+            {
+              "stop": "Timer nach drei Versuchen nicht vollständig bestätigt. Es folgen keine weiteren Versuche. Teiländerungen sind möglich; bitte Heizung und Warmwasser prüfen.",
+              "error": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

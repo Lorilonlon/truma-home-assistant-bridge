@@ -1,99 +1,47 @@
-# Camper Heater Bridge – Truma iNet für Home Assistant
+# Truma iNet Bridge for Home Assistant
 
-Unabhängiges Community-Projekt, nicht von Truma unterstützt.
+Control space heating and hot water from Home Assistant through the classic **Truma iNet Box**. The bridge runs locally, talks to the box over Bluetooth and exposes controls and sensors through MQTT. Tested with a Truma Combi 6. The iNet X protocol is not supported.
 
 > [!WARNING]
-> **Experimentelle Software – Nutzung auf eigene Gefahr und Verantwortung.**
->
-> Dies ist ein privates Community-Projekt zur Steuerung einer echten Heizung und Warmwasseranlage, kein vom Hersteller freigegebenes Produkt. Fehler, Verbindungsabbrüche, falsche Anzeigen und unerwartete Schaltvorgänge sind möglich. Fehlbedienung oder Fehlfunktionen können Personen verletzen oder Sachschäden verursachen, etwa durch Brand, Überhitzung oder Frost.
->
-> Prüfe die Eignung für deine Anlage selbst, teste Änderungen vor Ort unter Aufsicht und halte dich an die Herstelleranweisungen. Sicherheitseinrichtungen dürfen nicht umgangen werden. Verlasse dich für Frostschutz oder andere sicherheitsrelevante Aufgaben nicht allein auf diese Software oder das Dashboard. Bei unerwartetem Verhalten die Bridge stoppen und die Anlage nach Herstelleranleitung lokal bedienen.
->
-> Die Software wird gemäß MIT-Lizenz ohne Zusicherung von Fehlerfreiheit, Zuverlässigkeit oder Eignung bereitgestellt. Zwingende gesetzliche Haftung bleibt unberührt; „auf eigene Gefahr“ bedeutet keinen vollständigen Haftungsausschluss. Siehe [Sicherheit und Haftung](LEGAL.md#sicherheit-und-haftung).
+> Experimental software controlling a real heater and water system. Use at your own risk. Incorrect readings, lost connections or unexpected operation can cause injury, fire, overheating or frost damage. Test changes on site, follow the manufacturer's instructions and retain access to the local controls. Do not rely on the bridge alone for frost protection. If it behaves unexpectedly, stop the bridge and use the local controls as instructed by the manufacturer. The MIT licence and mandatory statutory liability apply. [Safety and liability](LEGAL.md#sicherheit-und-haftung)
 
-Local Bluetooth/MQTT integration for the classic Truma iNet Box and Home Assistant. Independent community project, not affiliated with or endorsed by Truma or the Home Assistant project.
+## Heating, water and dashboard
 
-Inoffizielle lokale Home-Assistant-App für eine klassische **Truma iNet-Box** und eine **Truma Combi 6**: Heizung, Warmwasser, Dashboard und Messwerte ohne Cloud-Steuerung.
-Eigenständiges Community-Projekt; keine Verbindung zum Hersteller und keine Freigabe durch Truma. Truma, iNet und Combi werden ausschließlich zur Beschreibung der Kompatibilität genannt. Keine Unterstützung für das andere iNet-X-Protokoll.
+Set a target room temperature, choose Eco or High fan speed and select a hot water setting (Off, Low, High or Boost). Changing the target while space heating is off stores it for the next explicit start. The dashboard shows the measured room and water temperatures, confirmed settings and connection status. Supply voltage is available as a separate sensor. It measures voltage at the iNet Box and can differ from a battery monitor. Missing or implausible values appear as unknown. Readback confirms control settings, not burner operation.
 
-## Transparent entwickelt mit KI
+## Timers
 
-Dieses Projekt wurde von **Lorilonlon mit wesentlicher Unterstützung von OpenAI Codex** entwickelt. Der KI-Assistent hat maßgeblich Code, Protokollanalyse, Tests, Dokumentation, Fehlersuche und Veröffentlichungsvorbereitung erarbeitet. Lorilonlon hat Anforderungen und Betriebsentscheidungen vorgegeben sowie die reale Anlage bedient und Rückmeldungen zu den Tests geliefert.
+- **Home Assistant schedules.** Queue up to eight one-off or daily timers. Pick the date, time, temperature, fan and hot water settings, then save the whole form. You can edit a pending timer. Adding an end time tells HA to restore the settings it read immediately before the start. With no end time, the new settings stay in effect.
+- **Overlapping timers.** The dashboard asks for confirmation when a new entry overlaps an existing one. The later start takes priority, and the older timer's end cannot undo it. The dashboard distinguishes a schedule saved in HA from settings confirmed by the box. Completed one-off entries disappear from the list after 24 hours.
+- **Execution.** HA and the Bluetooth connection must be available when a schedule runs. If the box still does not confirm the requested settings after bounded retries, HA reports the failure. Configure a phone notification action to receive it on your phone. [Install the scheduler and dashboard controls](dashboard/TIMER.md)
+- **CP plus device timer.** The heater's own daily timer stores one start and end time. It can be read through the bridge. Writing requires separate opt-in via `allow_timer_control`. On the reference installation, the operator checked **06:30–08:20, 19 °C, Eco, hot water off** at the CP plus after the end time was changed in HA with the device timer off. The bridge also read back the restored end time. A complete scheduled start and stop by the CP plus still needs verification. [Device timer tests and limits](TIMER_PROTOCOL.md)
 
-Das ist keine ausschließlich menschliche Entwicklung. Tests und Dokumentation wurden ebenfalls mit KI erstellt und sind deshalb keine unabhängige Prüfung. Es wird keine professionelle Sicherheitsprüfung, anwaltliche Freigabe oder Herstellerzertifizierung behauptet. Grenzen und offene Punkte werden mitveröffentlicht. Mehr dazu in [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
+## Heater warnings and faults
 
-## Erprobungsstand
+**As in the Truma iNet System phone app, you cannot reset a heater fault remotely through the classic iNet Box using Home Assistant.** The dashboard shows the fault reported by the appliance. Marking a message as seen acknowledges it in HA. If the fault requires acknowledgement at the CP plus, address the cause and follow the manufacturer's instructions at the panel.
 
-Vorbereiteter Stand: Bridge 0.1.8, optionale Bluetooth-Kompatibilität 0.1.2. Experimentell. Die bisherige Steuerung wurde auf Raspberry Pi 4 / Home Assistant OS mit klassischer iNet-Box HW 1.3.0, FW 3.1.5 und Combi 6 erprobt; die neuen Messsensoren wurden auf dieser Anlage bereits live ausgelesen. Ein zusätzlicher SMS-Statusabruf bestätigte die Zuordnung der Innentemperatur und die Spannung; eine Kalibrierung über den Messbereich liegt nicht vor. Keine allgemeine Kompatibilitätszusage. Am 03.10.2026 meldete der Betreiber nach der Alltagserprobung einen problemlosen Betrieb. Das ist ein Erfahrungsbericht einer Installation, kein durchgehend ausgewerteter Langzeittest. Am 23.09.2026 war ein Verbindungsfehler aufgetreten; Wiederherstellung erforderte Box-/Bluetooth-Neustarts. Die Ursache wurde nicht abschließend nachgewiesen. Frische Installation aus einem GitHub-Repository und vollständiger Host-Neustart sind noch offen.
+HA can forward new warnings, faults and failed commands to your phone using a Companion App notification action you configure. The optional “Heizung neu starten” action cycles heating and hot water and restores the previous settings. In tests the W17H warning persisted after this operation. [Fault reporting and notification setup](FAULTS.md)
 
-## Funktionen
+## Installation
 
-- Lokale Bluetooth-Verbindung mit Kopplungsfenster für genau die konfigurierte Box.
-- MQTT Discovery: Raumheizung, Solltemperatur, Eco/High und Warmwasser Aus/Niedrig/Hoch/Boost.
-- Bei ausgeschalteter Raumheizung wird der Sollwert nur gespeichert; erst explizites Einschalten sendet ihn. Laufende Heizung übernimmt Temperaturänderungen sofort.
-- Gemessene Raumtemperatur als eigener Sensor und als Isttemperatur der Klima-Entität; Versorgungsspannung und gemessene Wassertemperatur als eigene Sensoren.
-- Fehlende oder unplausible Messwerte werden als unbekannt behandelt. Keine Schreibzugriffe auf Messkanäle. Keine Ermittlung des tatsächlichen Brennerbetriebs.
-- Rücklesen nach Steuerbefehlen; keine automatische Wiederholung nach Verbindungsausfall. Als retained erkennbare MQTT-Befehle werden abgewiesen; die MQTT-3-Einschränkung ist unten beschrieben.
-- Ingress-Einrichtungsseite mit Kopplung und zeitlich begrenzter Freigabe für die Handy-App.
+1. On Home Assistant OS, set up the MQTT integration and a reachable broker. [Add this app repository to Home Assistant](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FLorilonlon%2Ftruma-home-assistant-bridge). Select **Camper Heater Bridge** in the app store. The app builds locally from source.
+2. Enter your box's Bluetooth address in `box_address`, choose the adapter (usually `hci0`) and enter your MQTT connection settings. TLS is enabled by default. If needed, supply your CA's public certificate. The adapter must support BLE peripheral advertising and a GATT server. An ordinary ESPHome Bluetooth proxy cannot replace it.
+3. Turn off Bluetooth on phones previously paired with the box. Start the bridge, open its web interface, start pairing and press the Bluetooth button on the iNet Box. First check the readings, then enable `allow_control` when you want to control the appliances. HA schedules do not require device-timer write access.
+4. For the dashboard, copy `dashboard/camper-inet-card.js` and `dashboard/camper-inet-fault-card.js` to `/config/www/` and register each as a JavaScript module under `/local/`. Add the cards from [the example dashboard](dashboard.json) to your view. Check the entity IDs and adjust the setup link to your installed app. Install the [timer helpers, script and automation](dashboard/TIMER.md) separately to use the scheduler.
+5. If you already use a local installation or the previous GitHub repository URL, keep the existing entry when updating. A different repository prefix can create a second installation. Back up the existing options and data before migrating, and run only one bridge. A fresh GitHub installation and migration have yet to be verified on the reference hardware.
 
-## Installation aus GitHub
+## Bluetooth troubleshooting
 
-Repository: **[Lorilonlon/truma-home-assistant-bridge](https://github.com/Lorilonlon/truma-home-assistant-bridge)**.
+A paired phone can reconnect to the box and occupy the connection the bridge needs. If HA loses contact, disconnect the phone and temporarily turn off Bluetooth on **all** previously paired phones, including a spare phone. If a phone keeps reconnecting and you no longer use it with the box, remove the pairing on that phone. To use the Truma app intentionally, release the box temporarily in the bridge's setup page.
 
-[Repository in Home Assistant hinzufügen](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FLorilonlon%2Ftruma-home-assistant-bridge)
+If pairing still fails, consult the [optional Bluetooth compatibility app](truma_bluetooth_compat/README.md). It delays a security request to the configured box by 800 ms, affects the shared Bluetooth service and requires host permissions. The bridge web interface also offers a bounded local connection log for troubleshooting. Its three rotating log files use about 1.5 MiB in total, record connection changes and periodic status, and survive app restarts. The export excludes Bluetooth payloads, pairing keys and configured credentials. Timestamps and operating states can still be personal. Keep exported logs private.
 
-In Home Assistant unter **Einstellungen → Apps → App-Store → ⋮ → Repositories** diese Adresse hinzufügen. Dann **Camper Heater Bridge** auswählen. Die beiden Apps werden aus Quellcode lokal gebaut; es gibt keine vorgefertigten Projekt-Images.
+## Test scope and project information
 
-Eine bestehende lokale Installation wird durch Hinzufügen des Repositorys **nicht automatisch migriert**. Der Repository-Präfix unterscheidet sich von `local_`. Nicht beide Bridges gleichzeitig starten. Vor einem späteren Wechsel private Optionen und lokale Daten sichern, die bisherige Bridge stoppen und Konfiguration/Kopplung kontrolliert übernehmen. Ein automatischer Migrationspfad ist nicht getestet.
+Test setup: Raspberry Pi 4 running Home Assistant OS, classic iNet Box hardware 1.3.0 / firmware 3.1.5, and a Combi 6. The operator reported several weeks of stable use on this installation. A scheduled HA hot-water command was confirmed by the box. Remote fault reporting was compared with W17H on the CP plus. Results are specific to this equipment. See [measurement notes](PROTOCOL.md), [timer tests](TIMER_PROTOCOL.md) and [fault tests](FAULTS.md).
 
-### Bereits über GitHub installiert?
+For local tests, install the dependencies from `truma_inet_bridge/requirements.txt` and Jinja2 for the scheduler simulations. Run `PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests`.
 
-Das Repository wurde am 08.10.2026 von `Lorilonlon/camper-heater-bridge` in `Lorilonlon/truma-home-assistant-bridge` umbenannt. GitHub leitet die bisherige Adresse weiter. Bestehende Installationen sollten den bisher in Home Assistant eingetragenen Repository-Link zunächst beibehalten: Home Assistant leitet den App-Präfix aus der Repository-Adresse ab; erneutes Hinzufügen unter der neuen Adresse kann deshalb eine separate Installation erzeugen. Nicht beide Bridges gleichzeitig starten. Eine Migration bestehender Installationen auf die neue Adresse wurde nicht getestet. Die neue Adresse oben ist für Neuinstallationen vorgesehen. Siehe [GitHub-Weiterleitungen](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository) und [Home-Assistant-App-Kennungen](https://developers.home-assistant.io/docs/apps/configuration/).
+Use non-retained MQTT commands and restrict access to the broker. MQTT 3 does not always identify a retained command forwarded to a live subscriber. The bridge does not replay commands after reconnection.
 
-## Installation und Einrichtung
-
-1. Home Assistant OS (getestete Installationsart) mit MQTT-Integration und einem erreichbaren MQTT-Broker bereitstellen. Zugangsdaten privat in den App-Optionen eintragen.
-2. Den Ordner `truma_inet_bridge` als lokale App installieren. Auf Home Assistant OS liegt das Verzeichnis in Terminal & SSH je nach Version unter `/addons` oder `/local_apps`. Den lokalen App-Store neu laden.
-3. Die eigene Bluetooth-Adresse in `box_address` eintragen, Adapter wählen (meist `hci0`). Es wird keine persönliche Adresse mitgeliefert. Der Adapter muss BLE-Peripheral-Advertising und einen GATT-Server unterstützen; ein gewöhnlicher ESPHome-Bluetooth-Proxy ersetzt ihn nicht.
-4. MQTT-Host, Port und nötige Zugangsdaten eintragen. TLS ist standardmäßig aktiv. Bei eigener CA deren öffentliches CA-Zertifikat eintragen; keine privaten Schlüssel. Ohne gültige eigene Box-Adresse startet die App nicht.
-5. App starten, Ingress öffnen, Bluetooth auf allen zuvor gekoppelten Handys für die Einrichtung ausschalten und Kopplung starten. Anschließend die Bluetooth-Taste an der iNet-Box drücken. Bestehende Bindungen werden nicht gelöscht.
-6. Zunächst im Lesemodus Werte prüfen. `allow_control` nur aktivieren, wenn tatsächlich gesteuert werden soll. Steuerung kann die Heizung physisch einschalten.
-7. Für die beschrifteten Kacheln `dashboard/camper-inet-card.js` nach `/config/www/camper-inet-card.js` kopieren und unter Dashboard-Ressourcen `/local/camper-inet-card.js` als JavaScript-Modul registrieren. Falls `www` neu angelegt wurde, kann ein Home-Assistant-Neustart erforderlich sein. Die Karte enthält keine externen Bibliotheken und verwendet die nativen Home-Assistant-Bedienelemente.
-8. Das Beispiel `dashboard.json` bei Bedarf über die Dashboard-Oberfläche importieren und die tatsächlich vergebenen Entity-IDs prüfen. Den Einrichtungslink an den installierten App-Slug anpassen; ein späteres Repository vergibt einen anderen Präfix als `local_`.
-
-## Optionaler Bluetooth-Workaround
-
-Nur bei dem dokumentierten Verbindungsproblem: `truma_bluetooth_compat` installieren und dort dieselbe eigene `box_address` eintragen. Diese separate App verändert zur Laufzeit den gemeinsamen Bluetooth-Dienst: vor einer Sicherheitsanfrage an genau diese Box wartet er 800 ms. Verschlüsselung wird nicht abgeschaltet. Andere Bluetooth-Aktionen können währenddessen kurz verzögert werden. Die App benötigt Host-D-Bus und Schreibzugriff auf `/share`; das ist eine weitreichende Berechtigung. Details und Rücknahme im zugehörigen README.
-
-## Grenzen der Messwerte
-
-Die Versorgungsspannung wird an der iNet-Box gemeldet; sie ist kein präziser Batterie-Shunt und kann wegen Leitungsverlusten vom Batteriewert abweichen. Die Raumtemperatur ist ein Messwert der Truma-Anlage, keine aus dem Sollwert abgeleitete Temperatur. Zuordnung und Skalierung sind in `PROTOCOL.md` mit Evidenzgrad dokumentiert. Warmwasser-Aus/Boost wurden anhand der App-Gerätedaten ergänzt und sind noch nicht physisch bestätigt.
-
-## Entwicklung und Tests
-
-Python-Abhängigkeiten: `truma_inet_bridge/requirements.txt`.
-
-```sh
-python -m pip install -r truma_inet_bridge/requirements.txt
-PYTHONPATH=truma_inet_bridge python -m unittest discover -s tests -v
-```
-
-Die Linux-C-Tests laufen beim Build der Kompatibilitäts-App. Keine Original-APK, dekompilierten Klassen, Herstellerbilder oder Bluetooth-Mitschnitte werden benötigt oder mitgeliefert. MQTT-Steuerthemen nur ohne retain verwenden; MQTT-3 kann live weitergeleitete retained-Nachrichten nicht immer als solche kennzeichnen. Der Broker ist eine Vertrauensgrenze.
-
-## Lizenz und Veröffentlichung
-
-Eigener Projektcode: MIT, siehe LICENSE. Abhängigkeiten behalten ihre eigenen Lizenzen; siehe THIRD_PARTY.md. Keine Herstellerrechte oder Markenrechte werden durch diese Lizenz eingeräumt. Die erste Veröffentlichung erfolgt als experimenteller Quellcode-Pre-Release. Noch offene Prüfungen stehen in `RELEASE_CHECKLIST.md`; Herkunft und rechtliche Grenzen in `LEGAL.md`, vertrauliche Fehlermeldungen in `SECURITY.md`.
-
-## Verbindungsdiagnose
-
-Ab Bridge 0.1.8 läuft eine begrenzte lokale Diagnosehistorie automatisch mit. Sie protokolliert Zustandswechsel, Bluetooth-Verbindungsmerkmale, Fehlertypen und alle fünf Minuten einen Status mit letzter bestätigter Rückmeldung. Systemlast und CPU-/Speicher-/I/O-Wartezeiten helfen, Funkprobleme von einem überlasteten Rechner zu unterscheiden. Die Werte beziehen sich auf den Host und können durch andere Apps beeinflusst werden.
-
-In der Bridge-Weboberfläche lässt sich die Historie über **Verbindungsprotokoll herunterladen** als ZIP exportieren. Drei rotierende Dateien unter `/data/diagnostics` belegen zusammen ungefähr höchstens 1,5 MiB; bei Erreichen der Grenze werden die ältesten Einträge ersetzt. Die Historie übersteht einen App-Neustart, aber keine Deinstallation ohne Sicherung. Sie enthält keine Funkpakete, Bluetooth-Schlüssel oder Konfigurations-Zugangsdaten. Zeitpunkte und Betriebszustände sind dennoch persönliche Betriebsdaten; Diagnosearchive nicht in das öffentliche Repository übernehmen.
-
-Das Protokoll löst keine Steuerbefehle oder automatischen Neustarts aus. Ein harter Stromausfall kann nicht unmittelbar protokolliert werden; erkennbar sind die letzte Aufzeichnung und der nächste Start. Es erfolgt keine automatische Benachrichtigung.
-
-## Betrieb und Sicherheit
-
-Die App kann reale Heiz- und Warmwasserfunktionen auslösen. Sie ersetzt keine Sicherheitseinrichtungen, Herstelleranweisungen, Frostschutzüberwachung oder lokale Bedienmöglichkeit. Bei Ausfall bleibt der tatsächliche Gerätezustand maßgeblich; ein nicht verfügbarer Sensor bedeutet nicht „Heizung aus“. Zunächst im Lesemodus erproben und `allow_control` bewusst freigeben. Keine zugesicherte Eignung für unbeaufsichtigten oder sicherheitskritischen Betrieb.
-
-Der optionale Kompatibilitätsdienst greift in den gemeinsamen Bluetooth-Systemdienst ein. Vor seiner Installation die dortigen Hinweise lesen. MQTT-Zugangsdaten nur lokal speichern und Broker-Zugriff begrenzen.
+Independent community project, unaffiliated with Truma or Home Assistant. Developed with [OpenAI Codex support](AI_DISCLOSURE.md). [MIT licence](LICENSE) · [Third-party notices](THIRD_PARTY.md) · [Private security reporting](SECURITY.md).

@@ -24,12 +24,86 @@ class CommandResilience(unittest.IsolatedAsyncioTestCase):
         clock = [time.monotonic()]
         original = self.backend.read
         async def slow_read(k):
-            clock[0] += 2
+            clock[0] += 5
             return await original(k)
         self.backend.read = slow_read
         with patch('bridge.main.time.monotonic',side_effect=lambda:clock[0]):
             await self.bridge.command('temperature','25',0,clock[0])
         self.assertEqual(self.backend.writes,[])
+        self.assertFalse(self.bridge.ready)
+    async def test_slow_validation_after_poll_wait_is_accepted(self):
+        # Regression: a timely command must survive >3 s of necessary reads.
+        # Simulate 4 s queue age and 1.1 s per read (7.7 s transaction total).
+        clock = [time.monotonic()]
+        original = self.backend.read
+        async def slow_read(k):
+            clock[0] += 1.1
+            return await original(k)
+        self.backend.read = slow_read
+        with patch('bridge.main.time.monotonic',side_effect=lambda:clock[0]):
+            await self.bridge.command('temperature','19',0,clock[0]-4)
+        self.assertTrue(self.bridge.ready)
+        self.assertEqual(self.bridge.state['target'],19)
+        self.assertEqual(len(self.backend.writes),1)
+        self.assertFalse(self.bridge.faults.active)
+
+    async def test_generation_changes_during_slow_validation_still_block(self):
+        original = self.backend.read
+        async def changed(k):
+            self.bridge.generation += 1
+            return await original(k)
+        self.backend.read = changed
+        await self.bridge.command('temperature','19',0)
+        self.assertEqual(self.backend.writes,[])
+        self.assertFalse(self.bridge.ready)
+
+    async def test_hung_read_times_out_and_releases_lock(self):
+        async def hung(k):
+            await asyncio.Event().wait()
+        self.backend.read = hung
+        with patch('bridge.main.COMMAND_EXECUTION_SECONDS',0.03):
+            await asyncio.wait_for(self.bridge.command('temperature','19',0),1)
+        self.assertEqual(self.backend.writes,[])
+        self.assertFalse(self.bridge.lock.locked())
+        self.assertFalse(self.bridge.ready)
+        self.assertIn('Zeitlimit',self.bridge.error)
+
+    async def test_expired_wait_behind_poll_does_not_run_later(self):
+        await self.bridge.lock.acquire()
+        try:
+            with patch('bridge.main.COMMAND_QUEUE_SECONDS',0.03):
+                await asyncio.wait_for(self.bridge.command('temperature','19',0),1)
+            self.assertEqual(self.backend.writes,[])
+            self.assertTrue(self.bridge.ready)
+            self.assertEqual(self.bridge.generation,0)
+        finally:
+            self.bridge.lock.release()
+        await asyncio.sleep(0)
+        self.assertEqual(self.backend.writes,[])
+
+    async def test_timeout_after_write_is_not_retried(self):
+        original = self.backend.read
+        async def lose_reply(k):
+            if self.backend.writes:
+                await asyncio.Event().wait()
+            return await original(k)
+        self.backend.read = lose_reply
+        with patch('bridge.main.COMMAND_EXECUTION_SECONDS',0.03):
+            await asyncio.wait_for(self.bridge.command('temperature','21',0),1)
+        self.assertEqual(len(self.backend.writes),1)
+        self.assertFalse(self.bridge.ready)
+        self.assertNotEqual(self.bridge.state['target'],21)
+
+    async def test_expiry_between_two_writes_stops_remaining_steps(self):
+        clock = [time.monotonic()]
+        original = self.backend.write
+        async def slow_write(k,payload):
+            await original(k,payload)
+            clock[0] += 13
+        self.backend.write = slow_write
+        with patch('bridge.main.time.monotonic',side_effect=lambda:clock[0]):
+            await self.bridge.command('mode','off',0,clock[0])
+        self.assertEqual(self.backend.writes,[('fan',b'\0')])
         self.assertFalse(self.bridge.ready)
     async def test_daemon_restart_during_read_blocks_write(self):
         original=self.backend.read

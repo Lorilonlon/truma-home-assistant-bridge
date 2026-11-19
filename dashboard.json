@@ -74,6 +74,32 @@
               }
             }
           ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "custom:camper-inet-timer-card",
+              "grid_options": {
+                "columns": 12,
+                "rows": "auto"
+              },
+              "job_entity": "input_text.truma_timer_auftrag"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "custom:camper-inet-fault-card",
+              "entity": "sensor.truma_inet_meldungen",
+              "grid_options": {
+                "columns": 12,
+                "rows": "auto"
+              }
+            }
+          ]
         }
       ]
     }

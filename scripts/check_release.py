@@ -9,6 +9,10 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED = set(['.github/ISSUE_TEMPLATE/bug_report.md', '.github/pull_request_template.md', '.github/workflows/tests.yml', '.gitignore', 'AI_DISCLOSURE.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'DEPENDENCIES.json', 'LEGAL.md', 'LICENSE', 'PROTOCOL.md', 'PUBLISHING.md', 'README.md', 'RELEASE_CHECKLIST.md', 'RELEASE_NOTES.md', 'SECURITY.md', 'THIRD_PARTY.md', 'VALIDATION.md', 'dashboard.json', 'dashboard/camper-inet-card.js', 'repository.yaml', 'tests/test_bluez_recovery.py', 'tests/test_bridge.py', 'tests/test_diagnostics.py', 'tests/test_measurements.py', 'tests/test_resilience.py', 'truma_bluetooth_compat/Dockerfile', 'truma_bluetooth_compat/LICENSE', 'truma_bluetooth_compat/README.md', 'truma_bluetooth_compat/apply.sh', 'truma_bluetooth_compat/config.json', 'truma_bluetooth_compat/main.py', 'truma_bluetooth_compat/remove.sh', 'truma_bluetooth_compat/tests/test_security_delay.c', 'truma_bluetooth_compat/truma_security_delay.c', 'truma_inet_bridge/Dockerfile', 'truma_inet_bridge/LICENSE', 'truma_inet_bridge/bridge/__init__.py', 'truma_inet_bridge/bridge/bluez.py', 'truma_inet_bridge/bridge/diagnostics.py', 'truma_inet_bridge/bridge/index.html', 'truma_inet_bridge/bridge/main.py', 'truma_inet_bridge/bridge/mqtt.py', 'truma_inet_bridge/bridge/protocol.py', 'truma_inet_bridge/config.json', 'truma_inet_bridge/requirements.txt', 'scripts/check_release.py'])
+ALLOWED.update({'FAULTS.md', 'tests/test_faults.py', 'dashboard/camper-inet-fault-card.js', 'truma_inet_bridge/bridge/faults.py'})
+ALLOWED.add('dashboard/heater-restart-script.json')
+ALLOWED.update({'scripts/build_timer_workflow.py','dashboard/timer-script.json','dashboard/timer-automation.json','dashboard/timer-helpers.json','dashboard/TIMER.md','tests/test_timer_workflow.py','tests/test_timer_card.cjs'})
+ALLOWED.update({'TIMER_PROTOCOL.md', 'tests/test_timer.py', 'truma_inet_bridge/bridge/timer.py'})
 EXCLUDED_DIRS = {'.git', '__pycache__', '.venv', 'venv'}
 SYNTHETIC_MACS = {'00:00:00:00:00:00', '00:11:22:33:44:55', '02:11:22:33:44:55'}
 PATTERNS = {
